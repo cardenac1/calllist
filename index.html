@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Multi-Service Patient List Manager</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2a2a2a;
+            --bg-tertiary: #3a3a3a;
+            --text-primary: #ffffff;
+            --text-secondary: #e0e0e0;
+            --accent-blue: #00ffff;
+            --accent-purple: #ff00ff;
+            --accent-green: #00ff00;
+            --accent-yellow: #ffff00;
+            --accent-orange: #ff8800;
+            --accent-pink: #ff69b4;
+            --warning-red: #ff0000;
+            --border-color: #4a4a4a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: var(--accent-blue);
+            text-align: center;
+            font-size: 2.5em;
+            text-shadow: 0 0 20px var(--accent-blue);
+            margin-bottom: 30px;
+        }
+
+        .control-panel {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 2px solid var(--accent-purple);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .stats {
+            margin-left: auto;
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        .patient-table-container {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            color: var(--accent-yellow);
+            font-weight: bold;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background: var(--bg-tertiary);
+        }
+
+        tr.high-priority-row {
+            background: rgba(255, 0, 0, 0.1);
+            border-left: 3px solid var(--warning-red);
+        }
+
+        tr.high-priority-row:hover {
+            background: rgba(255, 0, 0, 0.2);
+        }
+
+        .service-badge {
+            background: var(--accent-purple);
+            color: var(--bg-primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-size: 1em;
+        }
+
+        .button-primary {
+            background: linear-gradient(45deg, var(--accent-blue), var(--accent-green));
+            color: var(--bg-primary);
+        }
+
+        .button-secondary {
+            background: linear-gradient(45deg, var(--accent-purple), var(--accent-orange));
+            color: var(--text-primary);
+        }
+
+        .button-danger {
+            background: var(--warning-red);
+            color: var(--text-primary);
+        }
+
+        .button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            margin: 50px auto;
+            padding: 30px;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 10px;
+            border: 2px solid var(--accent-blue);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+        }
+
+        .close-modal {
+            float: right;
+            font-size: 30px;
+            cursor: pointer;
+            color: var(--accent-pink);
+        }
+
+        .close-modal:hover {
+            color: var(--warning-red);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: var(--accent-blue);
+            margin-bottom: 5px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        input[type="text"]:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+        }
+
+        textarea {
+            min-height: 300px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+
+        .service-filter {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .filter-button {
+            padding: 8px 15px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-button.active {
+            background: var(--accent-green);
+            color: var(--bg-primary);
+            font-weight: bold;
+        }
+
+        .filter-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-button {
+            padding: 5px 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s ease;
+        }
+
+        .action-button:hover {
+            background: var(--accent-blue);
+            color: var(--bg-primary);
+        }
+
+        .action-button.delete:hover {
+            background: var(--warning-red);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .stats {
+                margin-left: 0;
+                margin-top: 10px;
+                text-align: center;
+            }
+            
+            table {
+                font-size: 0.85em;
+            }
+            
+            th, td {
+                padding: 8px;
+            }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-purple);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-blue);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: var(--accent-yellow);
+        }
+
+        .priority-high {
+            color: var(--warning-red);
+            font-weight: bold;
+        }
+
+        .priority-medium {
+            color: var(--accent-orange);
+        }
+
+        .priority-low {
+            color: var(--accent-green);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="control-panel">
+            <button class="button button-primary" onclick="showImportModal()">Import from CERNER</button>
+            <button class="button button-secondary" onclick="exportCSV()">Export CSV</button>
+            <button class="button button-secondary" onclick="copyToClipboard()">Copy List</button>
+            <button class="button button-secondary" onclick="showAddPatientModal()">Add Patient</button>
+            <button class="button button-danger" onclick="clearCurrentService()">Clear Service</button>
+            <button class="button button-danger" onclick="clearAllData()">Clear All</button>
+            <div class="stats" id="stats">Total Patients: 0</div>
+        </div>
+
+        <div class="service-filter" id="serviceFilter">
+            <span style="color: var(--accent-blue); font-weight: bold;">Filter by Service:</span>
+            <button class="filter-button active" onclick="filterByService('all')">All</button>
+        </div>
+
+        <div class="patient-table-container">
+            <table id="patientTable">
+                <thead id="tableHeader">
+                    <tr>
+                        <th style="cursor: pointer;" onclick="sortBy('NAME')">NAME <span id="sort-NAME">↕</span></th>
+                        <th style="cursor: pointer;" onclick="sortBy('ROOM')">ROOM <span id="sort-ROOM">↕</span></th>
+                        <th>MRN</th>
+                        <th style="cursor: pointer;" onclick="sortBy('SERVICE')">SERVICE <span id="sort-SERVICE">↕</span></th>
+                        <th>TASK</th>
+                        <th>TT</th>
+                        <th style="cursor: pointer;" onclick="sortBy('PRIORITY')">PRIORITY <span id="sort-PRIORITY">↕</span></th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody id="patientTableBody">
+                    <tr>
+                        <td colspan="8" class="empty-state">No patients loaded. Click "Import from CERNER" to begin.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeImportModal()">&times;</span>
+            <h2>Import Patient List from CERNER</h2>
+            
+            <div class="form-group">
+                <label for="serviceInput">Service Name (e.g., Medicine, Surgery, ICU)</label>
+                <input type="text" id="serviceInput" placeholder="Enter service name...">
+            </div>
+            
+            <div class="form-group">
+                <label for="pasteArea">Paste CERNER List Here</label>
+                <p style="color: var(--accent-yellow); font-size: 0.9em; margin-bottom: 10px;">
+                    Expected format: [blank] [blank] Room Name MRN<br>
+                    Example: <span style="font-family: monospace; color: var(--accent-green);">[tab][tab]5A101[tab]DOE, JOHN[tab]1234567</span>
+                </p>
+                <textarea id="pasteArea" placeholder="Paste the patient list from CERNER here..."></textarea>
+            </div>
+            
+            <button class="button button-primary" onclick="processImport()">Import Patients</button>
+        </div>
+    </div>
+
+    <!-- Add/Edit Patient Modal -->
+    <div id="patientModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closePatientModal()">&times;</span>
+            <h2 id="patientModalTitle">Add Patient</h2>
+            
+            <div class="form-group">
+                <label for="patientName">Name</label>
+                <input type="text" id="patientName" placeholder="Patient name...">
+            </div>
+            
+            <div class="form-group">
+                <label for="patientRoom">Room</label>
+                <input type="text" id="patientRoom" placeholder="Room number...">
+            </div>
+            
+            <div class="form-group">
+                <label for="patientMRN">MRN</label>
+                <input type="text" id="patientMRN" placeholder="Medical record number...">
+            </div>
+            
+            <div class="form-group">
+                <label for="patientService">Service</label>
+                <input type="text" id="patientService" placeholder="Service...">
+            </div>
+            
+            <div class="form-group">
+                <label for="patientTask">Task</label>
+                <input type="text" id="patientTask" placeholder="Task...">
+            </div>
+            
+            <div class="form-group">
+                <label for="patientTT">TT</label>
+                <input type="text" id="patientTT" placeholder="TT...">
+            </div>
+            
+            <div class="form-group">
+                <label for="patientPriority">Priority</label>
+                <select id="patientPriority">
+                    <option value="">None</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                </select>
+            </div>
+            
+            <button class="button button-primary" onclick="savePatient()">Save Patient</button>
+        </div>
+    </div>
+
+    <!-- Include Papa Parse from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
+    <script>
+        let patients = [];
+        let currentFilter = 'all';
+        let editingIndex = -1;
+        let sortField = null;
+        let sortAscending = true;
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            loadFromLocalStorage();
+            updateDisplay();
+        });
+
+        // Save to localStorage
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('multiServicePatients', JSON.stringify(patients));
+                console.log('Saved', patients.length, 'patients to localStorage');
+            } catch (e) {
+                console.error('Error saving to localStorage:', e);
+            }
+        }
+
+        // Load from localStorage
+        function loadFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('multiServicePatients');
+                if (saved) {
+                    patients = JSON.parse(saved);
+                    console.log('Loaded', patients.length, 'patients from localStorage');
+                }
+            } catch (e) {
+                console.error('Error loading from localStorage:', e);
+                patients = [];
+            }
+        }
+
+        // Show import modal
+        function showImportModal() {
+            // Pre-populate service field with last used service
+            const lastService = localStorage.getItem('lastUsedService') || '';
+            document.getElementById('serviceInput').value = lastService;
+            
+            document.getElementById('importModal').style.display = 'block';
+        }
+
+        // Close import modal
+        function closeImportModal() {
+            document.getElementById('importModal').style.display = 'none';
+            document.getElementById('serviceInput').value = '';
+            document.getElementById('pasteArea').value = '';
+        }
+
+        // Show add patient modal
+        function showAddPatientModal() {
+            editingIndex = -1;
+            document.getElementById('patientModalTitle').textContent = 'Add Patient';
+            clearPatientForm();
+            
+            // Pre-populate service field with current filter if not "all"
+            if (currentFilter !== 'all') {
+                document.getElementById('patientService').value = currentFilter;
+            } else {
+                // Use the most recently used service
+                const lastService = localStorage.getItem('lastUsedService') || '';
+                document.getElementById('patientService').value = lastService;
+            }
+            
+            document.getElementById('patientModal').style.display = 'block';
+        }
+
+        // Show edit patient modal
+        function showEditPatientModal(index) {
+            editingIndex = index;
+            const patient = patients[index];
+            document.getElementById('patientModalTitle').textContent = 'Edit Patient';
+            
+            document.getElementById('patientName').value = patient.NAME || '';
+            document.getElementById('patientRoom').value = patient.ROOM || '';
+            document.getElementById('patientMRN').value = patient.MRN || '';
+            document.getElementById('patientService').value = patient.SERVICE || '';
+            document.getElementById('patientTask').value = patient.TASK || '';
+            document.getElementById('patientTT').value = patient.TT || '';
+            document.getElementById('patientPriority').value = patient.PRIORITY || '';
+            
+            document.getElementById('patientModal').style.display = 'block';
+        }
+
+        // Close patient modal
+        function closePatientModal() {
+            document.getElementById('patientModal').style.display = 'none';
+            clearPatientForm();
+        }
+
+        // Clear patient form
+        function clearPatientForm() {
+            document.getElementById('patientName').value = '';
+            document.getElementById('patientRoom').value = '';
+            document.getElementById('patientMRN').value = '';
+            document.getElementById('patientService').value = '';
+            document.getElementById('patientTask').value = '';
+            document.getElementById('patientTT').value = '';
+            document.getElementById('patientPriority').value = '';
+        }
+
+        // Save patient (add or edit)
+        function savePatient() {
+            const patient = {
+                NAME: document.getElementById('patientName').value,
+                ROOM: document.getElementById('patientRoom').value,
+                MRN: document.getElementById('patientMRN').value,
+                SERVICE: document.getElementById('patientService').value,
+                TASK: document.getElementById('patientTask').value,
+                TT: document.getElementById('patientTT').value,
+                PRIORITY: document.getElementById('patientPriority').value
+            };
+
+            if (!patient.NAME || !patient.MRN) {
+                alert('Name and MRN are required');
+                return;
+            }
+
+            // Remember the last used service
+            if (patient.SERVICE) {
+                localStorage.setItem('lastUsedService', patient.SERVICE);
+            }
+
+            if (editingIndex >= 0) {
+                patients[editingIndex] = patient;
+            } else {
+                patients.push(patient);
+            }
+
+            saveToLocalStorage();
+            updateDisplay();
+            closePatientModal();
+        }
+
+        // Process import from CERNER
+        function processImport() {
+            const service = document.getElementById('serviceInput').value.trim();
+            const pasteText = document.getElementById('pasteArea').value.trim();
+
+            if (!service) {
+                alert('Please enter a service name');
+                return;
+            }
+
+            if (!pasteText) {
+                alert('Please paste the CERNER list');
+                return;
+            }
+
+            // Remember the last used service
+            localStorage.setItem('lastUsedService', service);
+
+            // Debug: Show first few lines to verify format
+            const firstLines = pasteText.split('\n').slice(0, 3);
+            console.log('First few lines of pasted data:');
+            firstLines.forEach((line, idx) => {
+                console.log(`Line ${idx}:`, line);
+                console.log('  Tab-separated columns:', line.split('\t'));
+            });
+
+            const newPatients = parseCernerList(pasteText, service);
+
+            if (newPatients.length === 0) {
+                alert('No valid patient entries found. Please check the format.\n\nExpected format: [blank] [blank] Room Name MRN\n\nCheck the browser console for details.');
+                return;
+            }
+
+            // Add new patients to the list (check for duplicates and update if needed)
+            let addedCount = 0;
+            let updatedCount = 0;
+            
+            newPatients.forEach(newPatient => {
+                // Check if patient with same MRN already exists
+                const existingIndex = patients.findIndex(p => p.MRN === newPatient.MRN);
+                if (existingIndex === -1) {
+                    // New patient
+                    patients.push(newPatient);
+                    addedCount++;
+                } else {
+                    // Update existing patient's room and service
+                    patients[existingIndex].ROOM = newPatient.ROOM;
+                    patients[existingIndex].SERVICE = newPatient.SERVICE;
+                    // Preserve existing TASK, TT, and PRIORITY
+                    updatedCount++;
+                }
+            });
+            
+            saveToLocalStorage();
+            updateDisplay();
+            closeImportModal();
+
+            let message = `Import complete for ${service} service:\n`;
+            message += `- ${addedCount} new patients added\n`;
+            if (updatedCount > 0) {
+                message += `- ${updatedCount} existing patients updated (room/service)`;
+            }
+            alert(message);
+        }
+
+
+
+// Parse CERNER list
+function parseCernerList(text, service) {
+    const lines = text.split('\n').filter(line => line.trim());
+    const newPatients = [];
+
+    console.log('Parsing CERNER list with', lines.length, 'lines');
+
+    lines.forEach((line, lineIndex) => {
+        // Skip header rows
+        if (!line.trim() || 
+            line.toLowerCase().includes('patient list') || 
+            (line.toLowerCase().includes('room') && line.toLowerCase().includes('name'))) {
+            return;
+        }
+
+        // Parse based on the format: [blank] [blank] Room Name MRN
+        // First try tab-delimited
+        let columns = line.split('\t');
+        
+        // If not enough columns, try multiple spaces
+        if (columns.length < 5) {
+            // Try splitting by multiple spaces
+            columns = line.split(/\s{2,}/);
+        }
+        
+        // Log for debugging
+        console.log(`Line ${lineIndex}: Found ${columns.length} columns:`, columns);
+        
+        // Expected format: [blank] [blank] Room Name MRN
+        // So we need at least 5 columns
+        if (columns.length >= 5) {
+            const room = columns[2].trim();
+            const name = columns[3].trim();
+            const mrn = columns[4].trim();
+            
+            if (room && name && mrn) {
+                newPatients.push({
+                    NAME: name,
+                    ROOM: room,
+                    MRN: mrn,
+                    SERVICE: service,
+                    TASK: '',
+                    TT: '',
+                    PRIORITY: ''
+                });
+                console.log(`Added patient: ${name} in room ${room}`);
+            }
+        } else {
+            console.warn(`Line ${lineIndex} has insufficient columns (${columns.length}):`, line);
+        }
+    });
+
+    console.log(`Parsed ${newPatients.length} patients from ${lines.length} lines`);
+    return newPatients;
+}
+
+
+
+
+        // Update display
+        function updateDisplay() {
+            updateServiceFilter();
+            updateTable();
+            updateStats();
+        }
+
+        // Update service filter buttons
+        function updateServiceFilter() {
+            const services = [...new Set(patients.map(p => p.SERVICE))].filter(s => s);
+            const filterContainer = document.getElementById('serviceFilter');
+            
+            let html = '<span style="color: var(--accent-blue); font-weight: bold;">Filter by Service:</span>';
+            
+            // All button with count
+            const allCount = patients.length;
+            html += `<button class="filter-button ${currentFilter === 'all' ? 'active' : ''}" onclick="filterByService('all')">All (${allCount})</button>`;
+            
+            // Service buttons with counts
+            services.forEach(service => {
+                const count = patients.filter(p => p.SERVICE === service).length;
+                const active = currentFilter === service ? 'active' : '';
+                html += `<button class="filter-button ${active}" onclick="filterByService('${service}')">${service} (${count})</button>`;
+            });
+            
+            filterContainer.innerHTML = html;
+        }
+
+        // Filter by service
+        function filterByService(service) {
+            currentFilter = service;
+            updateDisplay();
+        }
+
+        // Sort by field
+        function sortBy(field) {
+            if (sortField === field) {
+                sortAscending = !sortAscending;
+            } else {
+                sortField = field;
+                sortAscending = true;
+            }
+            
+            // Update sort indicators
+            document.querySelectorAll('[id^="sort-"]').forEach(span => {
+                span.textContent = '↕';
+            });
+            
+            const indicator = document.getElementById(`sort-${field}`);
+            if (indicator) {
+                indicator.textContent = sortAscending ? '↑' : '↓';
+            }
+            
+            updateDisplay();
+        }
+
+        // Update table
+        function updateTable() {
+            const tbody = document.getElementById('patientTableBody');
+            
+            let filteredPatients = patients;
+            if (currentFilter !== 'all') {
+                filteredPatients = patients.filter(p => p.SERVICE === currentFilter);
+            }
+
+            // Apply sorting
+            if (sortField) {
+                filteredPatients = [...filteredPatients].sort((a, b) => {
+                    let aVal = a[sortField] || '';
+                    let bVal = b[sortField] || '';
+                    
+                    // Special handling for priority
+                    if (sortField === 'PRIORITY') {
+                        const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1, '': 0 };
+                        aVal = priorityOrder[aVal] || 0;
+                        bVal = priorityOrder[bVal] || 0;
+                    }
+                    
+                    if (aVal < bVal) return sortAscending ? -1 : 1;
+                    if (aVal > bVal) return sortAscending ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            if (filteredPatients.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No patients found for selected filter.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            filteredPatients.forEach((patient, index) => {
+                const originalIndex = patients.indexOf(patient);
+                const priorityClass = patient.PRIORITY ? `priority-${patient.PRIORITY.toLowerCase()}` : '';
+                const rowClass = patient.PRIORITY === 'High' ? 'high-priority-row' : '';
+                
+                html += `
+                    <tr class="${rowClass}">
+                        <td>${patient.NAME || ''}</td>
+                        <td>${patient.ROOM || ''}</td>
+                        <td>${patient.MRN || ''}</td>
+                        <td><span class="service-badge">${patient.SERVICE || ''}</span></td>
+                        <td>${patient.TASK || ''}</td>
+                        <td>${patient.TT || ''}</td>
+                        <td class="${priorityClass}">${patient.PRIORITY || ''}</td>
+                        <td class="action-buttons">
+                            <button class="action-button" onclick="showEditPatientModal(${originalIndex})">Edit</button>
+                            <button class="action-button delete" onclick="deletePatient(${originalIndex})">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+
+        // Update stats
+        function updateStats() {
+            const stats = document.getElementById('stats');
+            const serviceCount = [...new Set(patients.map(p => p.SERVICE))].filter(s => s).length;
+            stats.textContent = `Total Patients: ${patients.length} | Services: ${serviceCount}`;
+        }
+
+        // Delete patient
+        function deletePatient(index) {
+            if (confirm('Are you sure you want to delete this patient?')) {
+                patients.splice(index, 1);
+                saveToLocalStorage();
+                updateDisplay();
+            }
+        }
+
+        // Clear all data
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear ALL patient data? This cannot be undone.')) {
+                patients = [];
+                saveToLocalStorage();
+                updateDisplay();
+            }
+        }
+
+        // Clear current service
+        function clearCurrentService() {
+            if (currentFilter === 'all') {
+                alert('Please select a specific service to clear');
+                return;
+            }
+            
+            const count = patients.filter(p => p.SERVICE === currentFilter).length;
+            if (count === 0) {
+                alert('No patients in current service');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to remove all ${count} patients from ${currentFilter} service? This cannot be undone.`)) {
+                patients = patients.filter(p => p.SERVICE !== currentFilter);
+                saveToLocalStorage();
+                currentFilter = 'all';
+                updateDisplay();
+            }
+        }
+
+        // Export to CSV
+        function exportCSV() {
+            if (patients.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const headers = ['NAME', 'ROOM', 'MRN', 'SERVICE', 'Task', 'TT', 'Priority'];
+            
+            const dataForExport = patients.map(patient => [
+                patient.NAME || '',
+                patient.ROOM || '',
+                patient.MRN || '',
+                patient.SERVICE || '',
+                patient.TASK || '',
+                patient.TT || '',
+                patient.PRIORITY || ''
+            ]);
+
+            const csv = Papa.unparse({
+                fields: headers,
+                data: dataForExport
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `patient_list_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Copy current list to clipboard
+        function copyToClipboard() {
+            let filteredPatients = patients;
+            if (currentFilter !== 'all') {
+                filteredPatients = patients.filter(p => p.SERVICE === currentFilter);
+            }
+
+            if (filteredPatients.length === 0) {
+                alert('No patients to copy');
+                return;
+            }
+
+            // Apply current sort
+            if (sortField) {
+                filteredPatients = [...filteredPatients].sort((a, b) => {
+                    let aVal = a[sortField] || '';
+                    let bVal = b[sortField] || '';
+                    
+                    if (sortField === 'PRIORITY') {
+                        const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1, '': 0 };
+                        aVal = priorityOrder[aVal] || 0;
+                        bVal = priorityOrder[bVal] || 0;
+                    }
+                    
+                    if (aVal < bVal) return sortAscending ? -1 : 1;
+                    if (aVal > bVal) return sortAscending ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            // Format for clipboard
+            let text = `Patient List - ${currentFilter === 'all' ? 'All Services' : currentFilter}\n`;
+            text += `Date: ${new Date().toLocaleString()}\n\n`;
+            text += 'ROOM\tNAME\tSERVICE\tTASK\tPRIORITY\n';
+            text += '---\t---\t---\t---\t---\n';
+            
+            filteredPatients.forEach(patient => {
+                text += `${patient.ROOM || '-'}\t`;
+                text += `${patient.NAME || '-'}\t`;
+                text += `${patient.SERVICE || '-'}\t`;
+                text += `${patient.TASK || '-'}\t`;
+                text += `${patient.PRIORITY || '-'}\n`;
+            });
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert(`Copied ${filteredPatients.length} patients to clipboard`);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard');
+            });
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.className === 'modal') {
+                event.target.style.display = 'none';
+            }
+        }
+
+        // Close modals with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.style.display = 'none';
+                });
+            }
+            
+            // Ctrl+I to open import modal
+            if (event.ctrlKey && event.key === 'i') {
+                event.preventDefault();
+                showImportModal();
+            }
+            
+            // Ctrl+E to export
+            if (event.ctrlKey && event.key === 'e') {
+                event.preventDefault();
+                exportCSV();
+            }
+        });
+    </script>
+</body>
+</html>
