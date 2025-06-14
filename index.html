@@ -170,12 +170,21 @@
     }
 
     /* Controls */
-    .controls {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 0.5rem;
-        margin-bottom: 0.5rem;
-    }
+.controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    align-items: stretch;
+}
+
+
+    .controls button,
+.controls select,
+.controls .file-input-label {
+    height: 100%;
+    min-height: 44px;
+}
 
     /* Buttons */
     button {
@@ -812,15 +821,7 @@
 </style>
 </head>
 <body>
-    <!-- Debug Toggle Button -->
-    <button class="debug-toggle" onclick="toggleDebug()">Debug Info</button>
     
-    <!-- Debug Panel -->
-    <div id="debugPanel" class="debug-panel">
-        <h4>Debug Information</h4>
-        <pre id="debugInfo"></pre>
-    </div>
-
     <!-- Header with Census -->
     <div class="header">
         <div class="header-content">
