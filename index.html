@@ -1,844 +1,666 @@
 <!DOCTYPE html>
-<html lang="en"
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Med List - Debug Version</title>
-    <!-- Copy all your existing styles here - keeping them as is -->
-<style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    :root {
-        --primary: #3b82f6;
-        --primary-dark: #2563eb;
-        --secondary: #06b6d4;
-        --danger: #ef4444;
-        --success: #10b981;
-        --dark-bg: #121212;
-        --card-bg: #1e1e1e;
-        --card-hover: #333333;
-        --border: #444444;
-        --text-primary: #f1f5f9;
-        --text-secondary: #94a3b8;
-        --accent-1: #00e5ff;
-        --accent-2: #f26363;
-        --accent-3: #79e89f;
-        --accent-4: #ffffff;
-        --accent-5: #ff8000;
-    }
-
-    body {
-        background-color: var(--dark-bg);
-        color: var(--text-primary);
-        font-family: monospace, monospace;
-        margin: 0;
-        padding: 0;
-        min-height: 100vh;
-    }
-
-    /* Debug Panel */
-    .debug-panel {
-        position: fixed;
-        bottom: 80px;
-        left: 20px;
-        background: var(--card-bg);
-        border: 2px solid var(--danger);
-        border-radius: 8px;
-        padding: 15px;
-        max-width: 400px;
-        max-height: 200px;
-        overflow-y: auto;
-        z-index: 9999;
-        font-size: 12px;
-        display: none;
-    }
-
-    .debug-panel.show {
-        display: block;
-    }
-
-    .debug-panel h4 {
-        color: var(--danger);
-        margin-bottom: 10px;
-    }
-
-    .debug-panel pre {
-        white-space: pre-wrap;
-        word-wrap: break-word;
-    }
-
-    .debug-toggle {
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        background: var(--danger);
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 5px;
-        cursor: pointer;
-        z-index: 10000;
-    }
-
-    /* Header */
-    .header {
-        background: var(--card-bg);
-        padding: 1rem;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-        margin-bottom: 1rem;
-    }
-
-    .header-content {
-        max-width: 1200px;
-        margin: 0 auto;
-        text-align: center;
-    }
-
-    .census {
-        font-size: 1.2rem;
-        color: var(--text-secondary);
-    }
-
-    .census-number {
-        font-size: 2rem;
-        font-weight: bold;
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    /* Container */
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 1rem 2rem 1rem;
-    }
-
-    /* File Input */
-    .file-input-wrapper {
-        position: relative;
-        overflow: hidden;
-        display: inline-block;
-        cursor: pointer;
-        margin-bottom: 0.5rem;
-        width: 100%;
-    }
-
-    .file-input-wrapper input[type="file"] {
-        position: absolute;
-        left: -9999px;
-    }
-
-    .file-input-label {
-        display: block;
-        padding: 0.75rem 1.5rem;
-        background: var(--card-bg);
-        border: 2px dashed var(--primary);
-        border-radius: 0.5rem;
-        transition: all 0.3s ease;
-        text-align: center;
-        width: 100%;
-    }
-
-    /* Make upload button match other buttons */
-.controls .file-input-label {
-    padding: 0.75rem 1rem;
-    border: none;
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: white;
-    font-weight: 500;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.controls .file-input-wrapper:hover .file-input-label {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    border: none;
-}
-
-    .file-input-wrapper:hover .file-input-label {
-        background: var(--card-hover);
-        border-color: var(--secondary);
-    }
-
-    /* Controls */
-.controls {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    align-items: stretch;
-}
-
-
-    .controls button,
-.controls select,
-.controls .file-input-label {
-    height: 100%;
-    min-height: 44px;
-}
-
-    /* Buttons */
-    button {
-        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-        color: white;
-        border: none;
-        padding: 0.75rem 1rem;
-        border-radius: 0.5rem;
-        font-size: 0.9rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        font-family: inherit;
-    }
-
-    button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
-    }
-
-    button:active {
-        transform: translateY(0);
-    }
-
-    button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    /* Select */
-    select {
-        background: var(--card-bg);
-        color: var(--text-primary);
-        border: 1px solid var(--border);
-        padding: 0.75rem;
-        border-radius: 0.5rem;
-        font-size: 0.9rem;
-        cursor: pointer;
-        font-family: inherit;
-    }
-
-    /* Hidden Elements */
-#columnDropdown {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-    margin: 0;
-}
-
-#columnDropdown.show {
-    max-height: 500px; /* Adjust as needed */
-    margin-top: 0.5rem;
-}
-
-    /* Search */
-
-
-    .search-wrapper {
-    margin: 0;
-    overflow: hidden;
-    max-height: 0;
-    transition: max-height 0.3s ease;
-}
-
-.search-wrapper.active {
-    max-height: 100px;
-}
-
-.search-container {
-    display: flex;
-    gap: 0.5rem;
-    background: var(--card-bg);
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-#searchInput {
-    flex: 1;
-    padding: 0.5rem;
-    background: var(--dark-bg);
-    border: 1px solid var(--border);
-    border-radius: 0.25rem;
-    color: var(--text-primary);
-    font-size: 0.9rem;
-    font-family: inherit;
-}
-
-#searchInput:focus {
-    outline: none;
-    border-color: var(--primary);
-}
-
-
-
-    
-
-    /* Row List */
-    .row-list {
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        margin-top: 1rem;
-    }
-
-    .row-item {
-        background: var(--card-bg);
-        padding: 1rem;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        font-size: 1.2rem;
-        border-left: 4px solid transparent;
-        text-rendering: optimizeLegibility;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        font-weight: 500;
-        position: relative;
-    }
-
-.row-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    align-items: flex-start;
-}
-
-    .row-item:hover {
-        background: var(--card-hover);
-        transform: translateX(5px);
-        border-left-color: var(--primary);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    /* Colored Text */
-    .colored-text-1 { color: var(--accent-1); }
-    .colored-text-2 { color: var(--accent-2); }
-    .colored-text-3 { color: var(--accent-3); }
-    .colored-text-4 { color: var(--accent-4); }
-    .colored-text-5 { color: var(--accent-5); }
-
-    /* Timestamp Badge */
-    .timestamp-badge {
-        background: var(--card-bg);
-        color: var(--secondary);
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.75em;
-        font-weight: bold;
-        border: 1px solid var(--border);
-        margin-left: auto;
-        white-space: nowrap;
-    }
-
-    .timestamp-badge.urgent {
-        background: rgba(255, 0, 0, 0.2);
-        color: var(--danger);
-        border-color: var(--danger);
-    }
-
-    /* Floating Action Button */
-    .fab {
-        position: fixed;
-        bottom: 2rem;
-        right: 2rem;
-        width: 56px;
-        height: 56px;
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.8rem;
-        color: white;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-        transition: all 0.3s ease;
-        z-index: 1000;
-        border: none;
-    }
-
-    .fab:hover {
-        transform: scale(1.1) rotate(90deg);
-        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
-    }
-
-    /* Column Selector */
-    .column-selector {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 0.5rem;
-        padding: 0.5rem;
-        background: var(--dark-bg);
-        border-radius: 0.5rem;
-        margin-top: 0.5rem;
-    }
-
-    .column-button {
-        padding: 0.5rem;
-        background: var(--card-bg);
-        border: 2px solid var(--border);
-        border-radius: 0.25rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-align: center;
-        font-size: 0.9rem;
-        color: var(--text-primary);
-    }
-
-    .column-button:hover {
-        border-color: var(--primary);
-    }
-
-.column-button.selected {
-    background: var(--success);
-    border-color: var(--success);
-    color: white;
-}
-    /* Modal */
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 2000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.9);
-        animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    .modal-content {
-        background: var(--card-bg);
-        margin: 5% auto;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        width: 90%;
-        max-width: 500px;
-        max-height: 80vh;
-        overflow-y: auto;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-        animation: slideIn 0.3s ease;
-    }
-
-    @keyframes slideIn {
-        from {
-            transform: translateY(-50px);
-            opacity: 0;
+    <title>Med List - Fixed Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        to {
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #06b6d4;
+            --danger: #ef4444;
+            --success: #10b981;
+            --dark-bg: #121212;
+            --card-bg: #1e1e1e;
+            --card-hover: #333333;
+            --border: #444444;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-1: #00e5ff;
+            --accent-2: #f26363;
+            --accent-3: #79e89f;
+            --accent-4: #ffffff;
+            --accent-5: #ff8000;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            font-family: monospace, monospace;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card-bg);
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            margin-bottom: 1rem;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .census {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .census-number {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem 2rem 1rem;
+        }
+
+        /* File Input */
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .file-input-wrapper:hover .file-input-label {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Controls */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            align-items: stretch;
+        }
+
+        .controls button,
+        .controls select,
+        .controls .file-input-label {
+            height: 100%;
+            min-height: 44px;
+        }
+
+        /* Buttons */
+        button {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            font-family: inherit;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        button:active {
             transform: translateY(0);
-            opacity: 1;
         }
-    }
 
-    .modal-content h2 {
-        margin-bottom: 1rem;
-        color: var(--primary);
-    }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
-    #newEntryFields {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-    }
+        /* Select */
+        select {
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
 
-    #newEntryFields input {
-        padding: 0.5rem;
-        background: var(--dark-bg);
-        border: 1px solid var(--border);
-        border-radius: 0.25rem;
-        color: var(--text-primary);
-        font-size: 0.9rem;
-        font-family: inherit;
-    }
+        /* Column Dropdown */
+        #columnDropdown {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            margin: 0;
+        }
 
-    #newEntryFields input:focus {
-        outline: none;
-        border-color: var(--primary);
-    }
+        #columnDropdown.show {
+            max-height: 500px;
+            margin-top: 0.5rem;
+        }
 
-    /* Details View */
-    .details-view {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: var(--dark-bg);
-        z-index: 1500;
-        overflow-y: auto;
-    }
+        /* Search */
+        .search-wrapper {
+            margin: 0;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.3s ease;
+        }
 
-    .details-header {
-        background: var(--card-bg);
-        padding: 1rem;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    }
+        .search-wrapper.active {
+            max-height: 100px;
+        }
 
-    .sticky-text {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: var(--primary);
-    }
+        .search-container {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--card-bg);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
 
-    #editForm {
-        padding: 1.5rem;
-        max-width: 800px;
-        margin: 0 auto;
-    }
+        #searchInput {
+            flex: 1;
+            padding: 0.5rem;
+            background: var(--dark-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
 
-    textarea {
-        width: 100%;
-        padding: 0.75rem;
-        background: var(--card-bg);
-        color: var(--text-primary);
-        border: 1px solid var(--border);
-        border-radius: 0.25rem;
-        font-size: 1rem;
-        font-family: inherit;
-        margin: 0.5rem 0 1rem;
-        resize: none;
-        transition: all 0.3s ease;
-        overflow: hidden;
-    }
+        #searchInput:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
 
-    textarea:focus {
-        outline: none;
-        border-color: var(--primary);
-    }
+        /* Row List */
+        .row-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
 
-    label {
-        display: block;
-        margin-top: 0.75rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-    }
+        .row-item {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.2rem;
+            border-left: 4px solid transparent;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-weight: 500;
+            position: relative;
+        }
 
-    .nav-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 0.75rem;
-        margin: 1rem 0;
-        flex-wrap: wrap;
-    }
+        .row-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            align-items: flex-start;
+        }
 
-    .delete-button {
-        background: linear-gradient(135deg, var(--danger), #dc2626);
-        margin: 2rem auto;
-        display: block;
-    }
+        .row-item:hover {
+            background: var(--card-hover);
+            transform: translateX(5px);
+            border-left-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
 
-    .timestamp-button {
-        background: linear-gradient(135deg, var(--secondary), #0891b2);
-    }
+        /* Colored Text */
+        .colored-text-1 { color: var(--accent-1); }
+        .colored-text-2 { color: var(--accent-2); }
+        .colored-text-3 { color: var(--accent-3); }
+        .colored-text-4 { color: var(--accent-4); }
+        .colored-text-5 { color: var(--accent-5); }
 
-    .timestamp-button:hover {
-        box-shadow: 0 4px 8px rgba(6, 182, 212, 0.3);
-    }
+        /* Timestamp Badge */
+        .timestamp-badge {
+            background: var(--card-bg);
+            color: var(--secondary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: bold;
+            border: 1px solid var(--border);
+            margin-left: auto;
+            white-space: nowrap;
+        }
 
-/* Mobile Responsive Styles */
-@media (max-width: 768px) {
-    body {
-        font-size: 14px;
-    }
+        .timestamp-badge.urgent {
+            background: rgba(255, 0, 0, 0.2);
+            color: var(--danger);
+            border-color: var(--danger);
+        }
 
-    .header {
-        padding: 0.75rem;
-        margin-bottom: 0.75rem;
-    }
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            border: none;
+        }
 
-    .header-content {
-        text-align: center;
-    }
+        .fab:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+        }
 
-    .census {
-        font-size: 1rem;
-    }
+        /* Column Selector */
+        .column-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: var(--dark-bg);
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+        }
 
-    .census-number {
-        font-size: 1.5rem;
-    }
+        .column-button {
+            padding: 0.5rem;
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
 
-    .container {
-        padding: 0 0.5rem 1rem 0.5rem;
-    }
+        .column-button:hover {
+            border-color: var(--primary);
+        }
 
-    .file-input-wrapper {
-        margin-bottom: 0;
-    }
+        .column-button.selected {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
 
-    .file-input-label {
-        padding: 0.55rem 0.4rem;
-        font-size: 0.75rem;
-        border: 1px solid var(--primary);
-    }
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            animation: fadeIn 0.3s ease;
+        }
 
-.controls button, 
-.controls select, 
-.controls .file-input-label {
-    padding: 0.55rem 0.4rem !important;
-    font-size: 0.75rem !important;
-    width: 100% !important;
-    height: 44px !important;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
 
-    button, select {
-        padding: 0.55rem 0.4rem;
-        font-size: 0.75rem;
-        width: 100%;
-    }
+        .modal-content {
+            background: var(--card-bg);
+            margin: 5% auto;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.3s ease;
+        }
 
-  .search-wrapper.active {
-        max-height: 150px;
-    }
-    
-    .search-container {
-        flex-direction: column;
-        padding: 0.5rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    #searchInput {
-        width: 100%;
-        padding: 0.5rem;
-        font-size: 0.8rem;
-    }
-     input[type="text"],
-    input[type="number"],
-    input[type="email"],
-    input[type="tel"],
-    input[type="password"],
-    input[type="search"],
-    input,
-    textarea,
-    select {
-        font-size: 16px !important;
-    }
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
 
-    .row-item {
-        padding: 0.8rem;
-        font-size: 1rem;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-        text-rendering: optimizeLegibility;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        font-weight: 500;
-    }
+        .modal-content h2 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
 
-    .row-content {
-        flex-direction: column;
-        align-items: flex-start;
-        width: 100%;
-    }
+        #newEntryFields {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
 
-    .timestamp-badge {
-        margin-left: 0;
-        margin-top: 0.5rem;
-    }
+        #newEntryFields input {
+            padding: 0.5rem;
+            background: var(--dark-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
 
-    .fab {
-        bottom: 1rem;
-        right: 1rem;
-        width: 48px;
-        height: 48px;
-        font-size: 1.5rem;
-    }
+        #newEntryFields input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
 
-    .column-selector {
-        grid-template-columns: 1fr 1fr;
-    }
+        /* Details View */
+        .details-view {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--dark-bg);
+            z-index: 1500;
+            overflow-y: auto;
+        }
 
-    .modal-content {
-        margin: 10% auto;
-        width: 95%;
-        padding: 1rem;
-    }
+        .details-header {
+            background: var(--card-bg);
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
 
-    .nav-buttons {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        grid-template-rows: auto auto;
-        gap: 0.5rem;
-        margin: 1rem 0;
-    }
+        .sticky-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
 
-    
-.nav-buttons button {
-    width: 100%;
-    padding: 1rem 0.5rem;
-    font-size: 0.9rem;
-    height: 50px;
-    margin: 0;
-}
+        #editForm {
+            padding: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
 
-    .nav-buttons button:nth-child(1) {
-        grid-column: 1;
-        grid-row: 1;
-    }
-    
-    .nav-buttons button:nth-child(2) {
-        grid-column: 2;
-        grid-row: 1;
-    }
-    
-    .nav-buttons button:nth-child(3) {
-        grid-column: 3;
-        grid-row: 1;
-    }
-    
-    .nav-buttons button:nth-child(4) {
-        grid-column: 1;
-        grid-row: 2;
-    }
-    
-    .nav-buttons button:nth-child(5) {
-        grid-column: 2;
-        grid-row: 2;
-    }
-    
-    .nav-buttons button:nth-child(6) {
-        grid-column: 3;
-        grid-row: 2;
-    }
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            font-size: 1rem;
+            font-family: inherit;
+            margin: 0.5rem 0 1rem;
+            resize: none;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
 
-.nav-buttons .delete-button {
-    background: linear-gradient(135deg, var(--danger), #dc2626);
-    margin: 0;
-    padding: 1rem 0.5rem;
-    font-size: 0.9rem;
-    height: 50px;
-    width: 100%;
-}
-    .details-header {
-        padding: 0.75rem;
-    }
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
 
-    .sticky-text {
-        font-size: 1.2rem;
-        text-align: center;
-    }
+        label {
+            display: block;
+            margin-top: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
 
-    #editForm {
-        padding: 1rem;
-    }
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
 
-    textarea {
-        font-size: 0.9rem;
-        padding: 0.6rem;
-    }
+        .delete-button {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            margin: 2rem auto;
+            display: block;
+        }
 
-    label {
-        font-size: 0.8rem;
-        margin-top: 0.5rem;
-    }
-}
-    
-/* Very small screens */
-@media (max-width: 480px) {
-    .column-selector {
-        grid-template-columns: 1fr;
-    }
-    
-    .controls {
-        grid-template-columns: 1fr 1fr;
-        gap: 0.3rem;
-    }
+        .timestamp-button {
+            background: linear-gradient(135deg, var(--secondary), #0891b2);
+        }
 
-    button, select {
-        padding: 0.5rem 0.3rem;
-        font-size: 0.7rem;
-    }
-    
-    .nav-buttons {
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 0.3rem;
-    }
-    
-.nav-buttons button {
-    padding: 0.8rem 0.3rem;
-    font-size: 0.85rem;
-    height: 45px;
-}
-    
-    .nav-buttons .delete-button {
-        padding: 0.5rem 0.2rem;
-        font-size: 0.7rem;
-    }
+        .timestamp-button:hover {
+            box-shadow: 0 4px 8px rgba(6, 182, 212, 0.3);
+        }
 
-    .row-item {
-        padding: 0.6rem;
-        font-size: 0.9rem;
-    }
+        /* Export dropdown */
+        .export-select {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            font-family: inherit;
+        }
 
-    .sticky-text {
-        font-size: 1rem;
-    }
+        .export-select:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
 
-    #editForm {
-        padding: 0.75rem;
-    }
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
 
-    textarea {
-        font-size: 0.85rem;
-        padding: 0.5rem;
-    }
-}
+            .header {
+                padding: 0.75rem;
+                margin-bottom: 0.75rem;
+            }
 
-/* Extra small screens */
-@media (max-width: 360px) {
-    .nav-buttons button {
-        padding: 0.4rem 0.1rem;
-        font-size: 0.65rem;
-    }
-    
-    .nav-buttons .delete-button {
-        padding: 0.4rem 0.1rem;
-        font-size: 0.65rem;
-    }
+            .census {
+                font-size: 1rem;
+            }
 
-    button, select {
-        padding: 0.4rem 0.2rem;
-        font-size: 0.65rem;
-    }
-}
-    
-</style>
+            .census-number {
+                font-size: 1.5rem;
+            }
+
+            .container {
+                padding: 0 0.5rem 1rem 0.5rem;
+            }
+
+            .controls button, 
+            .controls select, 
+            .controls .file-input-label {
+                padding: 0.55rem 0.4rem !important;
+                font-size: 0.75rem !important;
+                width: 100% !important;
+                height: 44px !important;
+                box-sizing: border-box;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .search-wrapper.active {
+                max-height: 150px;
+            }
+            
+            .search-container {
+                flex-direction: column;
+                padding: 0.5rem;
+                margin-bottom: 0.25rem;
+            }
+            
+            #searchInput {
+                width: 100%;
+                padding: 0.5rem;
+                font-size: 0.8rem;
+            }
+
+            input[type="text"],
+            input[type="number"],
+            input[type="email"],
+            input[type="tel"],
+            input[type="password"],
+            input[type="search"],
+            input,
+            textarea,
+            select {
+                font-size: 16px !important;
+            }
+
+            .row-item {
+                padding: 0.8rem;
+                font-size: 1rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .row-content {
+                flex-direction: column;
+                align-items: flex-start;
+                width: 100%;
+            }
+
+            .timestamp-badge {
+                margin-left: 0;
+                margin-top: 0.5rem;
+            }
+
+            .fab {
+                bottom: 1rem;
+                right: 1rem;
+                width: 48px;
+                height: 48px;
+                font-size: 1.5rem;
+            }
+
+            .column-selector {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .modal-content {
+                margin: 10% auto;
+                width: 95%;
+                padding: 1rem;
+            }
+
+            .nav-buttons {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                grid-template-rows: auto auto;
+                gap: 0.5rem;
+                margin: 1rem 0;
+            }
+
+            .nav-buttons button {
+                width: 100%;
+                padding: 1rem 0.5rem;
+                font-size: 0.9rem;
+                height: 50px;
+                margin: 0;
+            }
+
+            .details-header {
+                padding: 0.75rem;
+            }
+
+            .sticky-text {
+                font-size: 1.2rem;
+                text-align: center;
+            }
+
+            #editForm {
+                padding: 1rem;
+            }
+
+            textarea {
+                font-size: 0.9rem;
+                padding: 0.6rem;
+            }
+
+            label {
+                font-size: 0.8rem;
+                margin-top: 0.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    
     <!-- Header with Census -->
     <div class="header">
         <div class="header-content">
@@ -854,20 +676,24 @@
             <div class="file-input-wrapper">
                 <input type="file" id="fileInput" accept=".json,.csv">
                 <label for="fileInput" class="file-input-label">
-                    Upload
+                    Upload File
                 </label>
             </div>
-            <button onclick="toggleColumnDropdown()">Column options</button>
+            <button id="columnToggleBtn" onclick="toggleColumnDropdown()">Columns (3)</button>
             <select id="columnSelect" onchange="sortRows()">
-                <option value="">Select Column to Sort</option>
+                <option value="">Sort by...</option>
             </select>
             <button onclick="toggleSearch()">Search</button>
-            <button id="exportButtonMain" onclick="exportJSON()">Export</button>
+            <select class="export-select" onchange="handleExport(this.value); this.value=''">
+                <option value="">Export...</option>
+                <option value="json">Export as JSON</option>
+                <option value="csv">Export as CSV</option>
+            </select>
             <button onclick="clearAllData()" style="background: linear-gradient(135deg, var(--danger), #dc2626);">Clear All</button>
         </div>
 
         <!-- Column Dropdown -->
-        <div id="columnDropdown" style="display: none;">
+        <div id="columnDropdown">
             <div id="columnSelector" class="column-selector"></div>
         </div>
 
@@ -927,9 +753,6 @@
                         <button type="button" onclick="processBatchImport()">Import Patients</button>
                         <button type="button" onclick="backToEntrySelection()">Back</button>
                     </div>
-                    
-                    <!-- Debug Output -->
-                    <div id="debugOutput" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--dark-bg); border-radius: 0.5rem; font-size: 0.8rem; font-family: monospace; white-space: pre-wrap;"></div>
                 </div>
             </div>
         </div>
@@ -952,9 +775,7 @@
                 <button class="delete-button" onclick="deleteCurrentEntry()">Delete Entry</button>
                 <button class="timestamp-button" onclick="generateTimestamp()">Generate Timestamp</button>
                 <button class="timestamp-button" style="background: linear-gradient(135deg, var(--danger), #dc2626);" onclick="removeTimestamp()">Remove Timestamp</button>
-
             </div>
-
         </div>
     </div>
 
@@ -962,177 +783,587 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 
     <script>
-        // Default headers for the application
+        // ===== CONFIGURATION =====
         const DEFAULT_HEADERS = ['NAME', 'ROOM', 'MRN', 'SERVICE', 'Task', 'TT', 'Priority'];
+        const STORAGE_KEY = 'medListData';
+        const COLORS = ['colored-text-1', 'colored-text-2', 'colored-text-3', 'colored-text-4', 'colored-text-5'];
         
-        // Data structure
-        let parsedData = [];
-        let headers = [...DEFAULT_HEADERS];
-        let currentRowIndex = -1;
-        let selectedColumns = [0, 1, 2]; // Default to NAME, ROOM, MRN
-        let filteredIndexes = [];
-        let timestamps = {}; // Store timestamps separately by patient MRN
+        // ===== STATE MANAGEMENT =====
+        let appState = {
+            data: [],
+            headers: [...DEFAULT_HEADERS],
+            selectedColumns: [0, 1, 2],
+            timestamps: {},
+            currentRowIndex: -1,
+            filteredIndexes: []
+        };
 
-        const colors = [
-            'colored-text-1', 'colored-text-2', 'colored-text-3',
-            'colored-text-4', 'colored-text-5'
-        ];
-
-        // Debug functions
-        function toggleDebug() {
-            const panel = document.getElementById('debugPanel');
-            panel.classList.toggle('show');
-            if (panel.classList.contains('show')) {
-                updateDebugInfo();
-            }
-        }
-
-        function updateDebugInfo() {
-            const debugInfo = document.getElementById('debugInfo');
-            const info = {
-                parsedDataLength: parsedData.length,
-                headers: headers,
-                selectedColumns: selectedColumns,
-                sampleData: parsedData.slice(0, 3),
-                localStorage: localStorage.getItem('medListData') ? 'Data exists' : 'No data',
-                dataStructure: parsedData.length > 0 ? `First row type: ${typeof parsedData[0]}, Is Array: ${Array.isArray(parsedData[0])}` : 'No data'
-            };
-            debugInfo.textContent = JSON.stringify(info, null, 2);
-        }
-
-        // Initialize on page load
-        window.addEventListener('DOMContentLoaded', function() {
-            console.log('=== INITIALIZING APP ===');
-            initializeApp();
-        });
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', initializeApp);
 
         function initializeApp() {
-            console.log('Loading from localStorage...');
-            loadFromLocalStorage();
-            
-            console.log('After loading - parsedData:', parsedData);
-            console.log('After loading - headers:', headers);
-            console.log('After loading - selectedColumns:', selectedColumns);
-            
-            // Fix data structure if needed
-            fixDataStructure();
-            
-            // Make sure headers are always set
-            if (!headers || headers.length === 0) {
-                headers = [...DEFAULT_HEADERS];
-                console.log('Reset headers to defaults:', headers);
+            loadData();
+            updateUI();
+            startTimestampUpdater();
+        }
+
+        // ===== DATA MANAGEMENT =====
+        function loadData() {
+            try {
+                const savedData = localStorage.getItem(STORAGE_KEY);
+                if (savedData) {
+                    const parsed = JSON.parse(savedData);
+                    if (validateLoadedData(parsed)) {
+                        appState.data = parsed.data || [];
+                        appState.headers = parsed.headers || [...DEFAULT_HEADERS];
+                        appState.selectedColumns = parsed.selectedColumns || [0, 1, 2];
+                        appState.timestamps = parsed.timestamps || {};
+                        
+                        // Ensure data integrity
+                        appState.data = appState.data.map(row => {
+                            if (!Array.isArray(row)) return new Array(appState.headers.length).fill('');
+                            while (row.length < appState.headers.length) row.push('');
+                            return row;
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                resetToDefaults();
             }
+        }
+
+        function saveData() {
+            const dataToSave = {
+                version: "2.0",
+                lastSaved: new Date().toISOString(),
+                headers: appState.headers,
+                data: appState.data,
+                selectedColumns: appState.selectedColumns,
+                timestamps: appState.timestamps
+            };
             
-            // Validate selectedColumns after loading
-            validateSelectedColumns();
-            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        }
+
+        function validateLoadedData(data) {
+            return data && 
+                   Array.isArray(data.data) && 
+                   Array.isArray(data.headers) && 
+                   data.headers.length > 0 &&
+                   data.headers.every(h => typeof h === 'string');
+        }
+
+        function resetToDefaults() {
+            appState = {
+                data: [],
+                headers: [...DEFAULT_HEADERS],
+                selectedColumns: [0, 1, 2],
+                timestamps: {},
+                currentRowIndex: -1,
+                filteredIndexes: []
+            };
+        }
+
+        // ===== UI UPDATES =====
+        function updateUI() {
             populateColumnSelector();
             populateColumnSelect();
             displayRows();
             updateCensus();
-            startTimestampUpdater();
-            updateDebugInfo();
+            updateColumnButtonText();
         }
 
-        // Fix data structure issues
-        function fixDataStructure() {
-            console.log('Fixing data structure...');
-            
-            // First check if headers are corrupted
-            if (!Array.isArray(headers) || headers.length === 0 || 
-                (headers.length === 1 && (headers[0] === '[]' || headers[0] === '' || headers[0] === null))) {
-                console.error('CRITICAL: Headers are corrupted:', headers);
-                headers = [...DEFAULT_HEADERS];
-                selectedColumns = [0, 1, 2]; // Reset column selection
+        function updateCensus() {
+            document.getElementById('censusCount').textContent = appState.data.length;
+        }
+
+        function updateColumnButtonText() {
+            const btn = document.getElementById('columnToggleBtn');
+            if (btn) {
+                btn.textContent = `Columns (${appState.selectedColumns.length})`;
+            }
+        }
+
+        // ===== FILE HANDLING =====
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
                 
-                // If headers were corrupted, data is likely corrupted too
-                if (parsedData.length > 0 && parsedData[0].length === 1 && parsedData[0][0] === '') {
-                    console.error('Data appears to be corrupted (all empty single-element arrays)');
-                    if (confirm('Data appears to be corrupted. Would you like to clear all data and start fresh?')) {
-                        parsedData = [];
-                        timestamps = {};
-                        localStorage.removeItem('medListData');
-                        alert('Data cleared. Please re-import your patient list.');
+                if (file.name.endsWith('.json')) {
+                    handleJSONImport(content);
+                } else if (file.name.endsWith('.csv')) {
+                    handleCSVImport(content);
+                } else {
+                    alert('Please upload a .json or .csv file');
+                }
+            };
+            
+            reader.readAsText(file);
+            event.target.value = ''; // Reset input
+        }
+
+        function handleJSONImport(content) {
+            try {
+                const jsonData = JSON.parse(content);
+                
+                if (!validateLoadedData(jsonData)) {
+                    alert('Invalid JSON format. Please use a file exported from this application.');
+                    return;
+                }
+                
+                appState.data = jsonData.data || [];
+                appState.headers = jsonData.headers || [...DEFAULT_HEADERS];
+                appState.selectedColumns = jsonData.selectedColumns || [0, 1, 2];
+                appState.timestamps = jsonData.timestamps || {};
+                
+                // Ensure data integrity
+                appState.data = appState.data.map(row => {
+                    if (!Array.isArray(row)) return new Array(appState.headers.length).fill('');
+                    while (row.length < appState.headers.length) row.push('');
+                    return row;
+                });
+                
+                saveData();
+                updateUI();
+                alert(`Successfully imported ${appState.data.length} entries`);
+                
+            } catch (error) {
+                console.error('JSON import error:', error);
+                alert('Error importing JSON file: ' + error.message);
+            }
+        }
+
+        function handleCSVImport(content) {
+            Papa.parse(content, {
+                complete: function(results) {
+                    if (!results.data || results.data.length < 2) {
+                        alert('CSV file appears to be empty or invalid');
                         return;
                     }
+                    
+                    // First row as headers
+                    appState.headers = results.data[0].map(h => String(h).trim());
+                    
+                    // Rest as data
+                    appState.data = results.data.slice(1)
+                        .filter(row => row.some(cell => cell && String(cell).trim()))
+                        .map(row => row.map(cell => String(cell || '').trim()));
+                    
+                    // Reset other state
+                    appState.selectedColumns = [0, 1, 2].filter(i => i < appState.headers.length);
+                    appState.timestamps = {};
+                    
+                    saveData();
+                    updateUI();
+                    alert(`Successfully imported ${appState.data.length} entries`);
+                },
+                error: function(error) {
+                    alert('Error parsing CSV: ' + error.message);
                 }
-            }
-            
-            // Ensure parsedData is an array
-            if (!Array.isArray(parsedData)) {
-                console.error('parsedData is not an array! Resetting...');
-                parsedData = [];
+            });
+        }
+
+        // ===== EXPORT FUNCTIONS =====
+        function handleExport(format) {
+            if (appState.data.length === 0) {
+                alert('No data to export');
                 return;
             }
             
-            // Fix each row
-            parsedData = parsedData.map((row, index) => {
-                if (!Array.isArray(row)) {
-                    console.error(`Row ${index} is not an array:`, row);
-                    // Try to convert object to array if possible
-                    if (typeof row === 'object' && row !== null) {
-                        const newRow = [];
-                        for (let i = 0; i < headers.length; i++) {
-                            newRow[i] = row[i] || row[headers[i]] || '';
-                        }
-                        console.log(`Converted row ${index} to array:`, newRow);
-                        return newRow;
+            if (format === 'json') {
+                exportJSON();
+            } else if (format === 'csv') {
+                exportCSV();
+            }
+        }
+
+        function exportJSON() {
+            const exportData = {
+                version: "2.0",
+                exportDate: new Date().toISOString(),
+                headers: appState.headers,
+                data: appState.data,
+                selectedColumns: appState.selectedColumns,
+                timestamps: appState.timestamps
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            downloadFile(blob, generateFileName('json'));
+        }
+
+        function exportCSV() {
+            const csvData = [
+                appState.headers,
+                ...appState.data
+            ];
+            
+            const csvContent = Papa.unparse(csvData);
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            downloadFile(blob, generateFileName('csv'));
+        }
+
+        function downloadFile(blob, filename) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        }
+
+        function generateFileName(extension) {
+            const now = new Date();
+            const dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}.${String(now.getFullYear()).slice(-2)}`;
+            return `medlist_${dateStr}.${extension}`;
+        }
+
+        // ===== COLUMN MANAGEMENT =====
+        function toggleColumnDropdown() {
+            const dropdown = document.getElementById('columnDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function populateColumnSelector() {
+            const selector = document.getElementById('columnSelector');
+            selector.innerHTML = '';
+            
+            appState.headers.forEach((header, index) => {
+                const button = document.createElement('div');
+                button.className = 'column-button';
+                button.textContent = header;
+                
+                if (appState.selectedColumns.includes(index)) {
+                    button.classList.add('selected');
+                }
+                
+                button.onclick = () => toggleColumnSelection(index);
+                selector.appendChild(button);
+            });
+        }
+
+        function toggleColumnSelection(index) {
+            const isSelected = appState.selectedColumns.includes(index);
+            
+            if (isSelected) {
+                appState.selectedColumns = appState.selectedColumns.filter(i => i !== index);
+            } else {
+                if (appState.selectedColumns.length < 5) {
+                    appState.selectedColumns.push(index);
+                } else {
+                    alert('Maximum 5 columns can be selected');
+                    return;
+                }
+            }
+            
+            saveData();
+            updateUI();
+        }
+
+        function populateColumnSelect() {
+            const select = document.getElementById('columnSelect');
+            select.innerHTML = '<option value="">Sort by...</option>';
+            
+            appState.headers.forEach((header, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = header;
+                select.appendChild(option);
+            });
+        }
+
+        // ===== DISPLAY FUNCTIONS =====
+        function displayRows() {
+            const rowList = document.getElementById('rowList');
+            rowList.innerHTML = '';
+            
+            if (appState.data.length === 0) {
+                rowList.innerHTML = '<li class="row-item" style="text-align: center; color: var(--text-secondary);">No patients loaded. Click "+" to add patients.</li>';
+                return;
+            }
+            
+            appState.data.forEach((row, index) => {
+                const listItem = createRowElement(row, index);
+                rowList.appendChild(listItem);
+            });
+        }
+
+        function createRowElement(row, index) {
+            const listItem = document.createElement('li');
+            listItem.className = 'row-item';
+            
+            const rowContent = document.createElement('div');
+            rowContent.className = 'row-content';
+            
+            appState.selectedColumns.forEach((colIndex, idx) => {
+                const span = document.createElement('span');
+                span.className = COLORS[idx % COLORS.length];
+                span.textContent = row[colIndex] || '';
+                rowContent.appendChild(span);
+            });
+            
+            listItem.appendChild(rowContent);
+            
+            // Add timestamp badge
+            const mrnIndex = appState.headers.indexOf('MRN');
+            if (mrnIndex !== -1 && row[mrnIndex] && appState.timestamps[row[mrnIndex]]) {
+                const badge = createTimestampBadge(appState.timestamps[row[mrnIndex]]);
+                if (badge) listItem.appendChild(badge);
+            }
+            
+            listItem.onclick = () => showDetails(index);
+            return listItem;
+        }
+
+        function createTimestampBadge(timestamp) {
+            const elapsed = getElapsedTime(timestamp);
+            if (!elapsed) return null;
+            
+            const badge = document.createElement('span');
+            badge.className = 'timestamp-badge';
+            if (elapsed.hours >= 2) {
+                badge.classList.add('urgent');
+            }
+            badge.textContent = elapsed.display;
+            return badge;
+        }
+
+        // ===== SORTING =====
+        function sortRows() {
+            const columnIndex = document.getElementById('columnSelect').value;
+            if (!columnIndex) return;
+            
+            appState.data.sort((a, b) => {
+                const valA = (a[columnIndex] || '').toString().toLowerCase();
+                const valB = (b[columnIndex] || '').toString().toLowerCase();
+                
+                // Try numeric sort first
+                const numA = parseFloat(valA);
+                const numB = parseFloat(valB);
+                
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return numA - numB;
+                }
+                
+                return valA.localeCompare(valB);
+            });
+            
+            saveData();
+            displayRows();
+        }
+
+        // ===== SEARCH FUNCTIONS =====
+        function toggleSearch() {
+            const wrapper = document.querySelector('.search-wrapper');
+            wrapper.classList.toggle('active');
+            
+            if (wrapper.classList.contains('active')) {
+                setTimeout(() => {
+                    document.getElementById('searchInput').focus();
+                }, 300);
+            }
+        }
+
+        function handleSearchKeyup(event) {
+            if (event.key === 'Enter') {
+                searchRows();
+            }
+        }
+
+        function searchRows() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                alert('Please enter a search term');
+                return;
+            }
+            
+            const results = [];
+            appState.filteredIndexes = [];
+            
+            appState.data.forEach((row, index) => {
+                const matchFound = row.some(cell => 
+                    (cell || '').toString().toLowerCase().includes(searchTerm)
+                );
+                
+                if (matchFound) {
+                    results.push(row);
+                    appState.filteredIndexes.push(index);
+                }
+            });
+            
+            displaySearchResults(results);
+        }
+
+        function displaySearchResults(results) {
+            const rowList = document.getElementById('rowList');
+            rowList.innerHTML = '';
+            
+            if (results.length === 0) {
+                rowList.innerHTML = '<li class="row-item" style="text-align: center; color: var(--text-secondary);">No results found</li>';
+                return;
+            }
+            
+            results.forEach((row, idx) => {
+                const originalIndex = appState.filteredIndexes[idx];
+                const listItem = createRowElement(row, originalIndex);
+                rowList.appendChild(listItem);
+            });
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            appState.filteredIndexes = [];
+            displayRows();
+            document.querySelector('.search-wrapper').classList.remove('active');
+        }
+
+        // ===== DETAIL VIEW =====
+        function showDetails(index) {
+            appState.currentRowIndex = index;
+            const detailsView = document.getElementById('detailsView');
+            const form = document.getElementById('editForm');
+            const stickyTextContainer = document.getElementById('stickyTextContainer');
+            
+            form.innerHTML = '';
+            
+            const row = appState.data[index];
+            const nameIndex = appState.headers.indexOf('NAME');
+            const title = (nameIndex !== -1 && row[nameIndex]) ? row[nameIndex] : 'Patient Details';
+            stickyTextContainer.textContent = title;
+            
+            appState.headers.forEach((header, colIndex) => {
+                const label = document.createElement('label');
+                label.textContent = header;
+                
+                const textarea = document.createElement('textarea');
+                textarea.value = row[colIndex] || '';
+                textarea.setAttribute('data-col-index', colIndex);
+                
+                form.appendChild(label);
+                form.appendChild(textarea);
+                
+                textarea.addEventListener('input', function() {
+                    autoResizeTextarea(this);
+                    const idx = parseInt(this.getAttribute('data-col-index'));
+                    appState.data[appState.currentRowIndex][idx] = this.value;
+                    
+                    if (appState.headers[idx] === 'NAME') {
+                        stickyTextContainer.textContent = this.value;
                     }
-                    // If can't convert, create empty row
-                    return new Array(headers.length).fill('');
-                }
-                
-                // Ensure row has correct length
-                while (row.length < headers.length) {
-                    row.push('');
-                }
-                
-                return row;
+                    
+                    saveData();
+                });
             });
             
-            console.log('Data structure fixed. Sample:', parsedData.slice(0, 2));
+            detailsView.style.display = 'block';
+            updateNavButtons();
+            
+            setTimeout(() => {
+                form.querySelectorAll('textarea').forEach(autoResizeTextarea);
+            }, 100);
         }
 
-        // Validate that selectedColumns are valid indices
-        function validateSelectedColumns() {
-            console.log('Validating selectedColumns:', selectedColumns);
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+
+        function navigateDetails(step) {
+            const newIndex = appState.currentRowIndex + step;
+            if (newIndex >= 0 && newIndex < appState.data.length) {
+                showDetails(newIndex);
+            }
+        }
+
+        function updateNavButtons() {
+            document.getElementById('prevButton').disabled = appState.currentRowIndex === 0;
+            document.getElementById('nextButton').disabled = appState.currentRowIndex === appState.data.length - 1;
+        }
+
+        function backToList() {
+            document.getElementById('detailsView').style.display = 'none';
+            displayRows();
+        }
+
+        function deleteCurrentEntry() {
+            if (appState.currentRowIndex === -1) return;
             
-            // Ensure selectedColumns is an array
-            if (!Array.isArray(selectedColumns)) {
-                selectedColumns = [0, 1, 2];
-                console.log('selectedColumns was not an array, reset to:', selectedColumns);
+            if (confirm('Are you sure you want to delete this entry?')) {
+                const mrnIndex = appState.headers.indexOf('MRN');
+                const mrn = appState.data[appState.currentRowIndex][mrnIndex];
+                
+                if (mrn && appState.timestamps[mrn]) {
+                    delete appState.timestamps[mrn];
+                }
+                
+                appState.data.splice(appState.currentRowIndex, 1);
+                backToList();
+                saveData();
+                updateUI();
+            }
+        }
+
+        // ===== TIMESTAMP FUNCTIONS =====
+        function generateTimestamp() {
+            if (appState.currentRowIndex === -1) {
+                alert('No patient selected');
                 return;
             }
             
-            // Filter out any invalid column indices
-            selectedColumns = selectedColumns.filter(colIndex => {
-                return typeof colIndex === 'number' && colIndex >= 0 && colIndex < headers.length;
-            });
+            const mrnIndex = appState.headers.indexOf('MRN');
+            const mrn = appState.data[appState.currentRowIndex][mrnIndex];
             
-            // If no valid columns remain, default to first 3 or all available
-            if (selectedColumns.length === 0) {
-                const maxColumns = Math.min(3, headers.length);
-                selectedColumns = Array.from({length: maxColumns}, (_, i) => i);
+            if (!mrn) {
+                alert('Patient must have an MRN to generate timestamp');
+                return;
             }
             
-            console.log('Validated selectedColumns:', selectedColumns);
+            const now = new Date();
+            appState.timestamps[mrn] = now.toISOString();
+            
+            const formattedTime = now.toLocaleString('en-US', {
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+            
+            alert(`Timestamp generated: ${formattedTime}`);
+            saveData();
+            displayRows();
         }
 
-        // Update census count
-        function updateCensus() {
-            const count = parsedData.length;
-            document.getElementById('censusCount').textContent = count;
-            console.log('Census updated:', count);
+        function removeTimestamp() {
+            if (appState.currentRowIndex === -1) {
+                alert('No patient selected');
+                return;
+            }
+            
+            const mrnIndex = appState.headers.indexOf('MRN');
+            const mrn = appState.data[appState.currentRowIndex][mrnIndex];
+            
+            if (!mrn || !appState.timestamps[mrn]) {
+                alert('No timestamp to remove');
+                return;
+            }
+            
+            delete appState.timestamps[mrn];
+            alert('Timestamp removed');
+            saveData();
+            displayRows();
         }
 
-        // Update timestamps every minute
-        function startTimestampUpdater() {
-            setInterval(() => {
-                displayRows();
-            }, 60000); // Update every minute
-        }
-
-        // Calculate elapsed time
         function getElapsedTime(timestamp) {
             if (!timestamp) return null;
             
@@ -1150,635 +1381,13 @@
             };
         }
 
-        // File input handler
-   
-
-document.getElementById('fileInput').addEventListener('change', function(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const content = e.target.result;
-            console.log('File loaded, type:', file.name.endsWith('.json') ? 'JSON' : 'CSV');
-            
-            // Check file extension first
-            if (file.name.endsWith('.json')) {
-                // Handle JSON file
-                try {
-                    const jsonData = JSON.parse(content);
-                    console.log('Parsed JSON:', jsonData);
-                    
-                    // Check if it's the correct JSON format
-                    if (jsonData.version && jsonData.data && jsonData.headers) {
-                        parsedData = jsonData.data || [];
-                        headers = jsonData.headers || [...DEFAULT_HEADERS];
-                        timestamps = jsonData.timestamps || {};
-                        selectedColumns = jsonData.selectedColumns || [0, 1, 2];
-                        
-                        fixDataStructure();
-                        validateSelectedColumns();
-                        populateColumnSelector();
-                        populateColumnSelect();
-                        displayRows();
-                        saveToLocalStorage();
-                        updateCensus();
-                        updateDebugInfo();
-                        
-                        alert(`Successfully imported ${parsedData.length} entries from JSON file`);
-                    } else {
-                        alert('Invalid JSON format. Please use a file exported from this application.');
-                    }
-                } catch (jsonError) {
-                    console.error('JSON parse error:', jsonError);
-                    alert('Error parsing JSON file: ' + jsonError.message);
-                }
-            } else {
-                // Handle CSV file
-                Papa.parse(content, {
-                    complete: function(results) {
-                        console.log('CSV parse results:', results);
-                        if (results.data && results.data.length > 0) {
-                            // For CSV, first row is headers
-                            headers = results.data[0].map(h => h.trim()) || [...DEFAULT_HEADERS];
-                            parsedData = results.data.slice(1).filter(row => row.some(cell => cell && cell.trim())); // Remove empty rows
-                            timestamps = {}; // Reset timestamps for CSV import
-                            selectedColumns = [0, 1, 2]; // Reset to default
-                            
-                            fixDataStructure();
-                            validateSelectedColumns();
-                            populateColumnSelector();
-                            populateColumnSelect();
-                            displayRows();
-                            saveToLocalStorage();
-                            updateCensus();
-                            updateDebugInfo();
-                            
-                            alert(`Successfully imported ${parsedData.length} entries from CSV file`);
-                        } else {
-                            alert('Error: No data found in CSV file');
-                        }
-                    },
-                    error: function(error) {
-                        console.error('Error parsing CSV:', error);
-                        alert('Error reading CSV file. Please check the format.');
-                    },
-                    header: false,
-                    skipEmptyLines: true
-                });
-            }
-        };
-        reader.readAsText(file);
-        
-        // Reset file input
-        event.target.value = '';
-    }
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
-        function populateColumnSelector() {
-            const columnSelector = document.getElementById('columnSelector');
-            columnSelector.innerHTML = '';
-            
-            console.log('Populating column selector with headers:', headers);
-            
-            headers.forEach((header, colIndex) => {
-                const button = document.createElement('div');
-                button.className = 'column-button';
-                button.textContent = header;
-                if (selectedColumns.includes(colIndex)) {
-                    button.classList.add('selected');
-                }
-                button.onclick = () => toggleColumnSelection(colIndex, button);
-                columnSelector.appendChild(button);
-            });
-        }
-
-
-
-
-
-function toggleColumnSelection(colIndex, button) {
-    if (selectedColumns.includes(colIndex)) {
-        selectedColumns = selectedColumns.filter(col => col !== colIndex);
-        button.classList.remove('selected');
-    } else {
-        if (selectedColumns.length < 5) {
-            selectedColumns.push(colIndex);
-            button.classList.add('selected');
-        } else {
-            alert('Maximum 5 columns can be selected');
-            return;
-        }
-    }
-    
-    // Update button text to show count
-    const toggleButton = document.querySelector('button[onclick="toggleColumnDropdown()"]');
-    if (toggleButton) {
-        toggleButton.textContent = `Columns (${selectedColumns.length})`;
-    }
-    
-    saveToLocalStorage();
-    displayRows();
-    updateDebugInfo();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
-        function populateColumnSelect() {
-            const columnSelect = document.getElementById('columnSelect');
-            columnSelect.innerHTML = '<option value="">Select Column to Sort</option>';
-            headers.forEach((header, colIndex) => {
-                const option = document.createElement('option');
-                option.value = colIndex;
-                option.textContent = header;
-                columnSelect.appendChild(option);
-            });
-        }
-
-        function displayRows() {
-            const rowList = document.getElementById('rowList');
-            rowList.innerHTML = '';
-            
-            console.log('=== DISPLAY ROWS ===');
-            console.log('parsedData length:', parsedData.length);
-            console.log('parsedData:', parsedData);
-            console.log('selectedColumns:', selectedColumns);
-            console.log('headers:', headers);
-            
-            if (!Array.isArray(parsedData) || parsedData.length === 0) {
-                rowList.innerHTML = '<li class="row-item" style="text-align: center; color: var(--text-secondary);">No patients loaded. Click "+" to add patients.</li>';
-                return;
-            }
-            
-            parsedData.forEach((row, index) => {
-                console.log(`Processing row ${index}:`, row);
-                
-                // Skip if row is not valid
-                if (!Array.isArray(row)) {
-                    console.error(`Row ${index} is not an array, skipping:`, row);
-                    return;
-                }
-                
-                const listItem = document.createElement('li');
-                listItem.className = 'row-item';
-                
-                // Create row content container
-                const rowContent = document.createElement('div');
-                rowContent.className = 'row-content';
-                
-                // Add selected columns
-                selectedColumns.forEach((colIndex, idx) => {
-                    const span = document.createElement('span');
-                    span.className = colors[idx % colors.length];
-                    
-                    // Safe access with validation
-                    let cellValue = '';
-                    if (typeof colIndex === 'number' && colIndex >= 0 && colIndex < row.length) {
-                        cellValue = row[colIndex] || '';
-                    }
-                    
-                    span.textContent = String(cellValue);
-                    console.log(`Row ${index}, Col ${colIndex}: "${cellValue}"`);
-                    rowContent.appendChild(span);
-                });
-                
-                listItem.appendChild(rowContent);
-                
-                // Add timestamp badge if exists
-                const mrnIndex = headers.indexOf('MRN');
-                if (mrnIndex !== -1 && mrnIndex < row.length) {
-                    const mrn = row[mrnIndex];
-                    if (mrn && timestamps[mrn]) {
-                        const elapsed = getElapsedTime(timestamps[mrn]);
-                        if (elapsed) {
-                            const badge = document.createElement('span');
-                            badge.className = 'timestamp-badge';
-                            if (elapsed.hours >= 2) {
-                                badge.classList.add('urgent');
-                            }
-                            badge.textContent = elapsed.display;
-                            listItem.appendChild(badge);
-                        }
-                    }
-                }
-                
-                listItem.onclick = () => showDetails(index);
-                rowList.appendChild(listItem);
-            });
-            
-            updateCensus();
-            console.log('Display rows completed');
-        }
-
-        function sortRows() {
-            const columnIndex = document.getElementById('columnSelect').value;
-            if (columnIndex !== "") {
-                parsedData.sort((a, b) => {
-                    const valueA = (a[columnIndex] || '').toString().toLowerCase();
-                    const valueB = (b[columnIndex] || '').toString().toLowerCase();
-
-                    if (valueA === "" && valueB === "") return 0;
-                    if (valueA === "") return 1;
-                    if (valueB === "") return -1;
-
-                    // Try numeric sort first
-                    const numA = parseFloat(valueA);
-                    const numB = parseFloat(valueB);
-                    
-                    if (!isNaN(numA) && !isNaN(numB)) {
-                        return numA - numB;
-                    }
-
-                    return valueA.localeCompare(valueB);
-                });
+        function startTimestampUpdater() {
+            setInterval(() => {
                 displayRows();
-                saveToLocalStorage();
-            }
+            }, 60000); // Update every minute
         }
 
-        function toggleSearch() {
-    const searchWrapper = document.querySelector('.search-wrapper');
-    const searchContainer = document.getElementById('searchContainer');
-    
-    searchWrapper.classList.toggle('active');
-    
-    if (searchWrapper.classList.contains('active')) {
-        setTimeout(() => {
-            document.getElementById('searchInput').focus();
-        }, 300); // Wait for animation
-    }
-}
-        
-        function handleSearchKeyup(event) {
-            if (event.key === 'Enter') {
-                searchRows();
-            }
-        }
-
-        function searchRows() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-            
-            if (!searchTerm) {
-                alert("Please enter a search term.");
-                return;
-            }
-
-            filteredIndexes = [];
-            const filteredData = [];
-
-            parsedData.forEach((row, index) => {
-                if (!Array.isArray(row)) return;
-                
-                const matchFound = row.some(colValue => {
-                    const valueStr = (colValue || '').toString().toLowerCase();
-                    return valueStr.includes(searchTerm);
-                });
-                
-                if (matchFound) {
-                    filteredIndexes.push(index);
-                    filteredData.push(row);
-                }
-            });
-
-            displayFilteredRows(filteredData);
-        }
-
-        function displayFilteredRows(filteredData) {
-            const rowList = document.getElementById('rowList');
-            rowList.innerHTML = '';
-
-            if (filteredData.length === 0) {
-                rowList.innerHTML = '<li class="row-item" style="text-align: center; color: var(--text-secondary);">No results found</li>';
-            } else {
-                filteredData.forEach((row, index) => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'row-item';
-                    
-                    const rowContent = document.createElement('div');
-                    rowContent.className = 'row-content';
-                    
-                    selectedColumns.forEach((colIndex, idx) => {
-                        const span = document.createElement('span');
-                        span.className = colors[idx % colors.length];
-                        span.textContent = (colIndex < row.length ? row[colIndex] : '') || '';
-                        rowContent.appendChild(span);
-                    });
-                    
-                    listItem.appendChild(rowContent);
-                    
-                    // Add timestamp badge if exists
-                    const mrnIndex = headers.indexOf('MRN');
-                    if (mrnIndex !== -1 && mrnIndex < row.length) {
-                        const mrn = row[mrnIndex];
-                        if (mrn && timestamps[mrn]) {
-                            const elapsed = getElapsedTime(timestamps[mrn]);
-                            if (elapsed) {
-                                const badge = document.createElement('span');
-                                badge.className = 'timestamp-badge';
-                                if (elapsed.hours >= 2) {
-                                    badge.classList.add('urgent');
-                                }
-                                badge.textContent = elapsed.display;
-                                listItem.appendChild(badge);
-                            }
-                        }
-                    }
-                    
-                    const originalIndex = filteredIndexes[index];
-                    listItem.onclick = () => showDetails(originalIndex);
-                    
-                    rowList.appendChild(listItem);
-                });
-            }
-        }
-
-        function clearSearch() {
-    document.getElementById('searchInput').value = '';
-    filteredIndexes = [];
-    displayRows();
-    document.querySelector('.search-wrapper').classList.remove('active');
-}
-
-        function showDetails(index) {
-            currentRowIndex = index;
-            const detailsView = document.getElementById('detailsView');
-            const form = document.getElementById('editForm');
-            const stickyTextContainer = document.getElementById('stickyTextContainer');
-
-            form.innerHTML = '';
-
-            // Ensure the row exists and has proper structure
-            if (!parsedData[index] || !Array.isArray(parsedData[index])) {
-                alert('Error: Patient data not found or invalid');
-                console.error('Invalid row at index:', index, parsedData[index]);
-                return;
-            }
-
-            const row = parsedData[index];
-            
-            // Ensure row has enough elements
-            while (row.length < headers.length) {
-                row.push('');
-            }
-
-            const nameIndex = headers.indexOf('NAME');
-            const title = (nameIndex !== -1 && row[nameIndex]) ? row[nameIndex] : 'Patient Details';
-            stickyTextContainer.textContent = title;
-
-            // Show all fields with their proper headers
-            headers.forEach((header, colIndex) => {
-                const label = document.createElement('label');
-                label.textContent = header;
-
-                const textarea = document.createElement('textarea');
-                textarea.value = row[colIndex] || '';
-                textarea.setAttribute('data-col-index', colIndex);
-
-                form.appendChild(label);
-                form.appendChild(textarea);
-
-                textarea.addEventListener('input', function() {
-                    autoResizeTextarea(this);
-                    const colIndex = parseInt(this.getAttribute('data-col-index'));
-                    parsedData[currentRowIndex][colIndex] = this.value;
-                    if (headers[colIndex] === 'NAME') {
-                        stickyTextContainer.textContent = this.value;
-                    }
-                    saveToLocalStorage();
-                });
-            });
-
-            detailsView.style.display = 'block';
-            updateNavButtons();
-
-            setTimeout(() => {
-                const textareas = form.querySelectorAll('textarea');
-                textareas.forEach(textarea => autoResizeTextarea(textarea));
-            }, 100);
-        }
-
-        function autoResizeTextarea(textarea) {
-            textarea.style.height = 'auto';
-            textarea.style.height = textarea.scrollHeight + 'px';
-        }
-
-        function navigateDetails(step) {
-            const newIndex = currentRowIndex + step;
-            if (newIndex >= 0 && newIndex < parsedData.length) {
-                showDetails(newIndex);
-            }
-        }
-
-        function updateNavButtons() {
-            document.getElementById('prevButton').disabled = currentRowIndex === 0;
-            document.getElementById('nextButton').disabled = currentRowIndex === parsedData.length - 1;
-        }
-
-        function backToList() {
-            document.getElementById('detailsView').style.display = 'none';
-            displayRows();
-        }
-
-
-
-
-
-
-        function exportJSON() {
-    if (parsedData.length === 0) {
-        alert('No data to export');
-        return;
-    }
-
-    const now = new Date();
-    const formattedDate = String(now.getMonth() + 1).padStart(2, '0') + "." +
-        String(now.getDate()).padStart(2, '0') + "." +
-        String(now.getFullYear()).slice(-2);
-
-    const filename = `list_${formattedDate}.json`;
-    
-    // Ensure all data is properly structured before export
-    const cleanData = parsedData.map(row => {
-        if (!Array.isArray(row)) {
-            console.error('Non-array row found during export:', row);
-            return new Array(headers.length).fill('');
-        }
-        return row;
-    });
-    
-    const jsonData = {
-        version: "1.0",
-        exportDate: now.toISOString(),
-        headers: headers,
-        data: cleanData,
-        timestamps: timestamps || {},
-        selectedColumns: selectedColumns || [0, 1, 2]
-    };
-    
-    const dataStr = JSON.stringify(jsonData, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.setAttribute('href', URL.createObjectURL(blob));
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    alert(`Exported ${parsedData.length} patients to ${filename}`);
-}
-
-
-
-        
-
-        function deleteCurrentEntry() {
-            if (currentRowIndex !== -1) {
-                const confirmDeletion = confirm("Are you sure you want to delete this entry?");
-                if (confirmDeletion) {
-                    // Remove timestamp if exists
-                    const mrnIndex = headers.indexOf('MRN');
-                    const mrn = parsedData[currentRowIndex][mrnIndex];
-                    if (mrn && timestamps[mrn]) {
-                        delete timestamps[mrn];
-                    }
-                    
-                    parsedData.splice(currentRowIndex, 1);
-                    backToList();
-                    saveToLocalStorage();
-                    updateDebugInfo();
-                }
-            }
-        }
-
-        function generateTimestamp() {
-            if (currentRowIndex === -1) {
-                alert("No patient selected.");
-                return;
-            }
-            
-            const mrnIndex = headers.indexOf('MRN');
-            const mrn = parsedData[currentRowIndex][mrnIndex];
-            
-            if (!mrn) {
-                alert("Patient must have an MRN to generate timestamp.");
-                return;
-            }
-            
-            const now = new Date();
-            timestamps[mrn] = now.toISOString();
-            
-            const timestamp = now.toLocaleString('en-US', {
-                month: '2-digit',
-                day: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-            });
-            
-            alert(`Timestamp generated: ${timestamp}\n\nThis request time will be tracked on the patient list.`);
-            saveToLocalStorage();
-            displayRows();
-        }
-
-
-
-
-
-        function removeTimestamp() {
-    if (currentRowIndex === -1) {
-        alert("No patient selected.");
-        return;
-    }
-    
-    const mrnIndex = headers.indexOf('MRN');
-    const mrn = parsedData[currentRowIndex][mrnIndex];
-    
-    if (!mrn) {
-        alert("Patient must have an MRN.");
-        return;
-    }
-    
-    if (timestamps[mrn]) {
-        delete timestamps[mrn];
-        alert('Timestamp removed');
-        saveToLocalStorage();
-        displayRows();
-    } else {
-        alert('No timestamp to remove');
-    }
-}
-
-
-
-
-        
-
-        function addEntry(event) {
-            event.preventDefault();
-            const newEntry = [];
-            const fields = document.querySelectorAll('#newEntryFields input');
-            
-            // Ensure we have the right number of fields
-            headers.forEach((header, index) => {
-                if (fields[index]) {
-                    newEntry.push(fields[index].value.trim());
-                    fields[index].value = '';
-                } else {
-                    newEntry.push('');
-                }
-            });
-
-            if (newEntry.every((value) => value === '')) {
-                alert('Please fill out at least one field.');
-                return;
-            }
-
-            console.log('Adding new entry:', newEntry);
-            parsedData.push(newEntry);
-            displayRows();
-            saveToLocalStorage();
-            closeAddEntryModal();
-            updateDebugInfo();
-        }
-
-        function generateNewEntryFields() {
-            const newEntryFields = document.getElementById('newEntryFields');
-            newEntryFields.innerHTML = '';
-
-            headers.forEach((header) => {
-                const input = document.createElement('input');
-                input.placeholder = header;
-                newEntryFields.appendChild(input);
-            });
-        }
-
+        // ===== ADD ENTRY FUNCTIONS =====
         function showAddEntryModal() {
             document.getElementById('addEntryModal').style.display = 'block';
             document.getElementById('entryTypeSelection').style.display = 'block';
@@ -1788,24 +1397,16 @@ function toggleColumnSelection(colIndex, button) {
 
         function closeAddEntryModal() {
             document.getElementById('addEntryModal').style.display = 'none';
-            
-            // Hide debug output when closing
-            const debugOutput = document.getElementById('debugOutput');
-            if (debugOutput) {
-                debugOutput.style.display = 'none';
-            }
         }
 
         function showManualEntry() {
             document.getElementById('entryTypeSelection').style.display = 'none';
             document.getElementById('addEntryForm').style.display = 'block';
-            document.getElementById('batchImportSection').style.display = 'none';
             generateNewEntryFields();
         }
 
         function showBatchImport() {
             document.getElementById('entryTypeSelection').style.display = 'none';
-            document.getElementById('addEntryForm').style.display = 'none';
             document.getElementById('batchImportSection').style.display = 'block';
             
             const lastService = localStorage.getItem('lastUsedService') || '';
@@ -1817,338 +1418,148 @@ function toggleColumnSelection(colIndex, button) {
             document.getElementById('addEntryForm').style.display = 'none';
             document.getElementById('batchImportSection').style.display = 'none';
             document.getElementById('cernerTextArea').value = '';
-            
-            // Hide debug output
-            const debugOutput = document.getElementById('debugOutput');
-            if (debugOutput) {
-                debugOutput.style.display = 'none';
-            }
         }
 
+        function generateNewEntryFields() {
+            const container = document.getElementById('newEntryFields');
+            container.innerHTML = '';
+            
+            appState.headers.forEach(header => {
+                const input = document.createElement('input');
+                input.placeholder = header;
+                container.appendChild(input);
+            });
+        }
+
+        function addEntry(event) {
+            event.preventDefault();
+            const fields = document.querySelectorAll('#newEntryFields input');
+            const newEntry = Array.from(fields).map(field => field.value.trim());
+            
+            if (newEntry.every(val => val === '')) {
+                alert('Please fill out at least one field');
+                return;
+            }
+            
+            appState.data.push(newEntry);
+            saveData();
+            updateUI();
+            closeAddEntryModal();
+            
+            // Clear fields
+            fields.forEach(field => field.value = '');
+        }
+
+        // ===== CERNER IMPORT =====
         function processBatchImport() {
             const service = document.getElementById('serviceInput').value.trim();
             const pasteText = document.getElementById('cernerTextArea').value.trim();
-
+            
             if (!service) {
                 alert('Please enter a service name');
                 return;
             }
-
+            
             if (!pasteText) {
                 alert('Please paste the CERNER list');
                 return;
             }
-
+            
             localStorage.setItem('lastUsedService', service);
-
+            
             const newPatients = parseCernerList(pasteText, service);
-
+            
             if (newPatients.length === 0) {
-                alert('No valid patient entries found. Please check the format.');
+                alert('No valid patient entries found');
                 return;
             }
-
-            console.log('=== BATCH IMPORT ===');
-            console.log('New patients to add:', newPatients);
-            console.log('Current parsedData before adding:', parsedData);
-
-            // Simply add all new patients
-            newPatients.forEach(newPatient => {
-                parsedData.push(newPatient);
-            });
             
-            console.log('After import - parsedData:', parsedData);
-            console.log('Total patients now:', parsedData.length);
-            
-            saveToLocalStorage();
-            displayRows();
+            appState.data.push(...newPatients);
+            saveData();
+            updateUI();
             closeAddEntryModal();
-            updateDebugInfo();
-
-            alert(`Import complete for ${service} service:\n${newPatients.length} patients added successfully!`);
+            
+            alert(`Import complete: ${newPatients.length} patients added`);
         }
 
         function parseCernerList(text, service) {
-            // Ensure headers are properly initialized
-            if (!headers || headers.length === 0 || 
-                (headers.length === 1 && (headers[0] === '[]' || headers[0] === '' || headers[0] === null))) {
-                console.warn('Headers were corrupted, resetting to defaults');
-                headers = [...DEFAULT_HEADERS];
-            }
-            
             const lines = text.split('\n').filter(line => line.trim());
             const newPatients = [];
             
-            // Show debug output
-            const debugOutput = document.getElementById('debugOutput');
-            if (debugOutput) {
-                debugOutput.style.display = 'block';
-                debugOutput.textContent = 'Debug Output:\n\n';
-                debugOutput.textContent += `Headers: ${JSON.stringify(headers)}\n\n`;
-            }
-
-            lines.forEach((line, lineIndex) => {
+            lines.forEach(line => {
                 if (!line.trim() || 
                     line.toLowerCase().includes('patient list') || 
                     (line.toLowerCase().includes('room') && line.toLowerCase().includes('name'))) {
                     return;
                 }
-
-                // Try different parsing strategies
-                let columns = [];
-                let room = '', name = '', mrn = '';
                 
-                // Debug the raw line
-                if (debugOutput) {
-                    debugOutput.textContent += `Line ${lineIndex + 1}: "${line}"\n`;
-                }
+                let columns = line.split('\t');
                 
-                // Strategy 1: Tab-delimited (most common)
-                columns = line.split('\t');
-                if (debugOutput) {
-                    debugOutput.textContent += `  Tab split (${columns.length} parts): ${JSON.stringify(columns)}\n`;
-                }
-                
-                // Strategy 2: Multiple spaces if tabs didn't work well
                 if (columns.length < 3) {
                     columns = line.split(/\s{2,}/);
-                    if (debugOutput) {
-                        debugOutput.textContent += `  Space split (${columns.length} parts): ${JSON.stringify(columns)}\n`;
-                    }
                 }
                 
-                // Strategy 3: If still not enough columns, try single space split
-                if (columns.length < 3) {
-                    columns = line.split(/\s+/);
-                    if (debugOutput) {
-                        debugOutput.textContent += `  Single space split (${columns.length} parts): ${JSON.stringify(columns)}\n`;
-                    }
-                }
+                let room = '', name = '', mrn = '';
                 
-                // Try to extract room, name, and MRN based on different formats
                 if (columns.length >= 5) {
-                    // Format: [blank] [blank] Room Name MRN
-                    room = columns[2] ? columns[2].trim() : '';
-                    name = columns[3] ? columns[3].trim() : '';
-                    mrn = columns[4] ? columns[4].trim() : '';
+                    room = columns[2].trim();
+                    name = columns[3].trim();
+                    mrn = columns[4].trim();
                 } else if (columns.length === 3) {
-                    // Format: Room Name MRN
-                    room = columns[0] ? columns[0].trim() : '';
-                    name = columns[1] ? columns[1].trim() : '';
-                    mrn = columns[2] ? columns[2].trim() : '';
+                    room = columns[0].trim();
+                    name = columns[1].trim();
+                    mrn = columns[2].trim();
                 } else if (columns.length === 4) {
-                    // Could be [blank] Room Name MRN
-                    if (!columns[0] || columns[0].trim() === '') {
-                        room = columns[1] ? columns[1].trim() : '';
-                        name = columns[2] ? columns[2].trim() : '';
-                        mrn = columns[3] ? columns[3].trim() : '';
+                    if (!columns[0].trim()) {
+                        room = columns[1].trim();
+                        name = columns[2].trim();
+                        mrn = columns[3].trim();
                     } else {
-                        // Or Room Name-with-space MRN
-                        room = columns[0] ? columns[0].trim() : '';
-                        name = columns[1] + ' ' + columns[2];
-                        mrn = columns[3] ? columns[3].trim() : '';
+                        room = columns[0].trim();
+                        name = `${columns[1]} ${columns[2]}`.trim();
+                        mrn = columns[3].trim();
                     }
                 }
                 
-                if (debugOutput) {
-                    debugOutput.textContent += `  Extracted: Room="${room}", Name="${name}", MRN="${mrn}"\n`;
-                }
-                
-                // Validate that we have the minimum required data
-                if (room && name && mrn && mrn.match(/^\d+$/)) {
-                    // Create new patient array - MUST BE AN ARRAY
-                    const newPatient = new Array(headers.length).fill('');
+                if (room && name && mrn && /^\d+$/.test(mrn)) {
+                    const newPatient = new Array(appState.headers.length).fill('');
                     
-                    // Find indices for each header and set values
-                    const nameIndex = headers.indexOf('NAME');
-                    const roomIndex = headers.indexOf('ROOM');
-                    const mrnIndex = headers.indexOf('MRN');
-                    const serviceIndex = headers.indexOf('SERVICE');
+                    const indices = {
+                        name: appState.headers.indexOf('NAME'),
+                        room: appState.headers.indexOf('ROOM'),
+                        mrn: appState.headers.indexOf('MRN'),
+                        service: appState.headers.indexOf('SERVICE')
+                    };
                     
-                    // Set the values we have
-                    if (nameIndex !== -1) newPatient[nameIndex] = name;
-                    if (roomIndex !== -1) newPatient[roomIndex] = room;
-                    if (mrnIndex !== -1) newPatient[mrnIndex] = mrn;
-                    if (serviceIndex !== -1) newPatient[serviceIndex] = service;
-                    
-                    if (debugOutput) {
-                        debugOutput.textContent += `  Created patient array: ${JSON.stringify(newPatient)}\n`;
-                        debugOutput.textContent += `  ✓ Added patient: ${name} (${room})\n\n`;
-                    }
+                    if (indices.name !== -1) newPatient[indices.name] = name;
+                    if (indices.room !== -1) newPatient[indices.room] = room;
+                    if (indices.mrn !== -1) newPatient[indices.mrn] = mrn;
+                    if (indices.service !== -1) newPatient[indices.service] = service;
                     
                     newPatients.push(newPatient);
-                } else {
-                    if (debugOutput) {
-                        debugOutput.textContent += `  ✗ Skipped - missing data or invalid MRN\n\n`;
-                    }
                 }
             });
-
-            if (debugOutput) {
-                debugOutput.textContent += `\nTotal patients parsed: ${newPatients.length}`;
-                if (newPatients.length > 0) {
-                    debugOutput.textContent += `\nSample patient data: ${JSON.stringify(newPatients[0])}`;
-                }
-            }
             
-            console.log('Headers being used:', headers);
-            console.log('Parsed patients:', newPatients);
             return newPatients;
         }
 
-        function saveToLocalStorage() {
-            const jsonData = {
-                version: "1.0",
-                lastSaved: new Date().toISOString(),
-                headers: headers,
-                data: parsedData,
-                timestamps: timestamps,
-                selectedColumns: selectedColumns
-            };
-            
-            const dataStr = JSON.stringify(jsonData);
-            localStorage.setItem('medListData', dataStr);
-            
-            console.log('Saved to localStorage:', {
-                headers: jsonData.headers,
-                dataLength: jsonData.data.length,
-                selectedColumns: jsonData.selectedColumns,
-                sampleData: jsonData.data.slice(0, 2)
-            });
-        }
-
-        function loadFromLocalStorage() {
-            const savedData = localStorage.getItem('medListData');
-            console.log('Raw localStorage data exists:', !!savedData);
-            
-            if (savedData) {
-                try {
-                    const jsonData = JSON.parse(savedData);
-                    console.log('Parsed localStorage data:', jsonData);
-                    
-                    if (jsonData.version && jsonData.data && jsonData.headers) {
-                        parsedData = jsonData.data || [];
-                        headers = jsonData.headers || [...DEFAULT_HEADERS];
-                        timestamps = jsonData.timestamps || {};
-                        selectedColumns = jsonData.selectedColumns || [0, 1, 2];
-                        
-                        // Validate headers - CRITICAL CHECK
-                        if (!Array.isArray(headers) || headers.length === 0 || 
-                            headers.length === 1 && (headers[0] === '[]' || headers[0] === '' || headers[0] === null)) {
-                            console.error('CORRUPTED HEADERS DETECTED:', headers);
-                            headers = [...DEFAULT_HEADERS];
-                            // Reset selectedColumns to match new headers
-                            selectedColumns = [0, 1, 2];
-                            alert('Data corruption detected. Headers have been reset to defaults. You may need to re-import your data.');
-                        }
-                        
-                        // Validate that headers are strings, not arrays or objects
-                        headers = headers.map((header, index) => {
-                            if (typeof header !== 'string') {
-                                console.error(`Header at index ${index} is not a string:`, header);
-                                return DEFAULT_HEADERS[index] || `Column${index}`;
-                            }
-                            return header;
-                        });
-                        
-                        console.log('Loaded data structure:');
-                        console.log('- parsedData is array:', Array.isArray(parsedData));
-                        console.log('- parsedData length:', parsedData.length);
-                        console.log('- First row is array:', parsedData.length > 0 ? Array.isArray(parsedData[0]) : 'No data');
-                        console.log('- headers:', headers);
-                        console.log('- selectedColumns:', selectedColumns);
-                    }
-                } catch (error) {
-                    console.error('Error loading from localStorage:', error);
-                    parsedData = [];
-                    headers = [...DEFAULT_HEADERS];
-                    timestamps = {};
-                    selectedColumns = [0, 1, 2];
-                }
-            } else {
-                console.log('No saved data in localStorage');
-            }
-        }
-
-        function toggleColumnDropdown() {
-            const dropdown = document.getElementById('columnDropdown');
-            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-        }
-
-        function generateNoteRTF(type) {
-            // This is a placeholder - implement based on your specific note format
-            alert(`${type} note generation would go here`);
-        }
-
+        // ===== UTILITY FUNCTIONS =====
         function clearAllData() {
             if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-                parsedData = [];
-                timestamps = {};
-                headers = [...DEFAULT_HEADERS];
-                selectedColumns = [0, 1, 2];
-                localStorage.removeItem('medListData');
-                displayRows();
-                updateCensus();
-                updateDebugInfo();
-                populateColumnSelector();
-                populateColumnSelect();
-                alert('All data cleared successfully. Headers reset to defaults.');
+                resetToDefaults();
+                localStorage.removeItem(STORAGE_KEY);
+                updateUI();
+                alert('All data cleared');
             }
         }
 
-        // Emergency recovery function (can be called from console)
-        window.emergencyRecovery = function() {
-            console.log('=== EMERGENCY RECOVERY ===');
-            console.log('Current state:', {
-                headers: headers,
-                dataLength: parsedData.length,
-                sampleData: parsedData.slice(0, 3)
-            });
-            
-            // Force reset headers
-            headers = [...DEFAULT_HEADERS];
-            selectedColumns = [0, 1, 2];
-            
-            // Try to salvage any real data
-            const salvaged = [];
-            parsedData.forEach((row, index) => {
-                if (Array.isArray(row) && row.length > 1 && row.some(cell => cell && cell !== '')) {
-                    // This row has some actual data
-                    while (row.length < headers.length) {
-                        row.push('');
-                    }
-                    salvaged.push(row);
-                    console.log(`Salvaged row ${index}:`, row);
-                }
-            });
-            
-            if (salvaged.length > 0) {
-                parsedData = salvaged;
-                console.log(`Recovered ${salvaged.length} rows with data`);
-            } else {
-                parsedData = [];
-                console.log('No salvageable data found, starting fresh');
-            }
-            
-            // Update everything
-            populateColumnSelector();
-            populateColumnSelect();
-            displayRows();
-            updateCensus();
-            updateDebugInfo();
-            saveToLocalStorage();
-            
-            alert(`Emergency recovery complete. ${salvaged.length} rows recovered.`);
-        };
-
-        // Close modals when clicking outside
+        // ===== EVENT HANDLERS =====
         window.onclick = function(event) {
             if (event.target.className === 'modal') {
                 event.target.style.display = 'none';
             }
-        }
+        };
 
-        // Keyboard shortcuts
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 document.querySelectorAll('.modal').forEach(modal => {
