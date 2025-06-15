@@ -228,16 +228,17 @@
     }
 
     /* Hidden Elements */
-    #columnDropdown {
-        margin: 0;
-        transition: all 0.3s ease;
-    }
+#columnDropdown {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    margin: 0;
+}
 
-    #columnDropdown[style*="display: none"] {
-        display: none !important;
-        height: 0 !important;
-        overflow: hidden !important;
-    }
+#columnDropdown.show {
+    max-height: 500px; /* Adjust as needed */
+    margin-top: 0.5rem;
+}
 
     /* Search */
 
@@ -1245,22 +1246,47 @@
             });
         }
 
-        function toggleColumnSelection(colIndex, button) {
-            if (selectedColumns.includes(colIndex)) {
-                selectedColumns = selectedColumns.filter(col => col !== colIndex);
-                button.classList.remove('selected');
-            } else {
-                if (selectedColumns.length < 5) { // Limit to 5 columns
-                    selectedColumns.push(colIndex);
-                    button.classList.add('selected');
-                } else {
-                    alert('Maximum 5 columns can be selected');
-                }
-            }
-            saveToLocalStorage(); // Save column selection
-            displayRows();
-            updateDebugInfo();
+
+
+
+
+function toggleColumnSelection(colIndex, button) {
+    if (selectedColumns.includes(colIndex)) {
+        selectedColumns = selectedColumns.filter(col => col !== colIndex);
+        button.classList.remove('selected');
+    } else {
+        if (selectedColumns.length < 5) {
+            selectedColumns.push(colIndex);
+            button.classList.add('selected');
+        } else {
+            alert('Maximum 5 columns can be selected');
+            return;
         }
+    }
+    
+    // Update button text to show count
+    const toggleButton = document.querySelector('button[onclick="toggleColumnDropdown()"]');
+    if (toggleButton) {
+        toggleButton.textContent = `Columns (${selectedColumns.length})`;
+    }
+    
+    saveToLocalStorage();
+    displayRows();
+    updateDebugInfo();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
         function populateColumnSelect() {
             const columnSelect = document.getElementById('columnSelect');
