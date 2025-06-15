@@ -2,7 +2,7 @@
 <html lang="en"
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Med List - Debug Version</title>
     <!-- Copy all your existing styles here - keeping them as is -->
 <style>
@@ -632,6 +632,17 @@
         width: 100%;
         padding: 0.5rem;
         font-size: 0.8rem;
+    }
+     input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"],
+    input[type="search"],
+    input,
+    textarea,
+    select {
+        font-size: 16px !important;
     }
 
     .row-item {
