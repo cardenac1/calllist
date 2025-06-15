@@ -803,8 +803,16 @@
 
         function initializeApp() {
             loadData();
+            checkDataIntegrity(); // Fix any data issues
             updateUI();
             startTimestampUpdater();
+            
+            // Add console command for emergency fixes
+            window.fixData = function() {
+                const fixed = checkDataIntegrity();
+                updateUI();
+                alert(`Data integrity check complete. Fixed ${fixed} issues.`);
+            };
         }
 
         // ===== DATA MANAGEMENT =====
@@ -813,18 +821,52 @@
                 const savedData = localStorage.getItem(STORAGE_KEY);
                 if (savedData) {
                     const parsed = JSON.parse(savedData);
+                    console.log('Loading saved data:', parsed);
+                    
                     if (validateLoadedData(parsed)) {
-                        appState.data = parsed.data || [];
-                        appState.headers = parsed.headers || [...DEFAULT_HEADERS];
-                        appState.selectedColumns = parsed.selectedColumns || [0, 1, 2];
+                        // Load data carefully to preserve structure
+                        appState.data = Array.isArray(parsed.data) ? parsed.data : [];
+                        appState.headers = Array.isArray(parsed.headers) ? parsed.headers : [...DEFAULT_HEADERS];
                         appState.timestamps = parsed.timestamps || {};
                         
-                        // Ensure data integrity
+                        // Validate selectedColumns
+                        if (Array.isArray(parsed.selectedColumns)) {
+                            appState.selectedColumns = parsed.selectedColumns.filter(col => 
+                                typeof col === 'number' && col >= 0 && col < appState.headers.length
+                            );
+                        }
+                        
+                        // If no valid columns, default to first 3
+                        if (appState.selectedColumns.length === 0) {
+                            appState.selectedColumns = [0, 1, 2].filter(i => i < appState.headers.length);
+                        }
+                        
+                        // Ensure each row is properly formatted
                         appState.data = appState.data.map(row => {
-                            if (!Array.isArray(row)) return new Array(appState.headers.length).fill('');
-                            while (row.length < appState.headers.length) row.push('');
-                            return row;
+                            if (!Array.isArray(row)) {
+                                console.warn('Non-array row found, creating empty row');
+                                return new Array(appState.headers.length).fill('');
+                            }
+                            // Ensure row has correct length
+                            const formattedRow = [...row];
+                            while (formattedRow.length < appState.headers.length) {
+                                formattedRow.push('');
+                            }
+                            // Trim if too long
+                            if (formattedRow.length > appState.headers.length) {
+                                formattedRow.length = appState.headers.length;
+                            }
+                            return formattedRow;
                         });
+                        
+                        console.log('Data loaded successfully:', {
+                            rows: appState.data.length,
+                            headers: appState.headers.length,
+                            selectedCols: appState.selectedColumns
+                        });
+                    } else {
+                        console.log('Invalid data format, using defaults');
+                        resetToDefaults();
                     }
                 }
             } catch (error) {
@@ -843,15 +885,40 @@
                 timestamps: appState.timestamps
             };
             
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+                console.log('Data saved:', { rows: appState.data.length });
+            } catch (error) {
+                console.error('Error saving data:', error);
+                alert('Error saving data. Storage might be full.');
+            }
         }
 
         function validateLoadedData(data) {
-            return data && 
-                   Array.isArray(data.data) && 
-                   Array.isArray(data.headers) && 
-                   data.headers.length > 0 &&
-                   data.headers.every(h => typeof h === 'string');
+            if (!data) return false;
+            
+            // More flexible validation
+            const isValid = data.data !== undefined && 
+                           data.headers !== undefined;
+                           
+            if (!isValid) return false;
+            
+            // Ensure data and headers are arrays
+            if (!Array.isArray(data.data) || !Array.isArray(data.headers)) {
+                return false;
+            }
+            
+            // Headers must have at least one item and be strings
+            if (data.headers.length === 0) return false;
+            
+            // Check if headers are valid strings
+            for (let header of data.headers) {
+                if (typeof header !== 'string' || header.trim() === '') {
+                    return false;
+                }
+            }
+            
+            return true;
         }
 
         function resetToDefaults() {
@@ -865,13 +932,90 @@
             };
         }
 
+        // Data integrity check and repair
+        function checkDataIntegrity() {
+            let issuesFixed = 0;
+            
+            // Ensure headers are valid
+            if (!Array.isArray(appState.headers) || appState.headers.length === 0) {
+                appState.headers = [...DEFAULT_HEADERS];
+                issuesFixed++;
+            }
+            
+            // Ensure all headers are strings
+            appState.headers = appState.headers.map((h, idx) => {
+                if (typeof h !== 'string' || h.trim() === '') {
+                    issuesFixed++;
+                    return DEFAULT_HEADERS[idx] || `Column ${idx + 1}`;
+                }
+                return h;
+            });
+            
+            // Fix data rows
+            if (!Array.isArray(appState.data)) {
+                appState.data = [];
+                issuesFixed++;
+            }
+            
+            appState.data = appState.data.map((row, rowIdx) => {
+                if (!Array.isArray(row)) {
+                    console.warn(`Row ${rowIdx} was not an array, creating empty row`);
+                    issuesFixed++;
+                    return new Array(appState.headers.length).fill('');
+                }
+                
+                // Ensure correct length
+                const fixedRow = new Array(appState.headers.length).fill('');
+                row.forEach((cell, cellIdx) => {
+                    if (cellIdx < appState.headers.length) {
+                        fixedRow[cellIdx] = String(cell || '');
+                    }
+                });
+                
+                if (row.length !== appState.headers.length) {
+                    issuesFixed++;
+                }
+                
+                return fixedRow;
+            });
+            
+            // Fix selected columns
+            appState.selectedColumns = appState.selectedColumns.filter(col => 
+                typeof col === 'number' && col >= 0 && col < appState.headers.length
+            );
+            
+            if (appState.selectedColumns.length === 0) {
+                appState.selectedColumns = [0, 1, 2].filter(i => i < appState.headers.length);
+                if (appState.selectedColumns.length === 0 && appState.headers.length > 0) {
+                    appState.selectedColumns = [0];
+                }
+                issuesFixed++;
+            }
+            
+            if (issuesFixed > 0) {
+                console.log(`Data integrity check: Fixed ${issuesFixed} issues`);
+                saveData();
+            }
+            
+            return issuesFixed;
+        }
+
         // ===== UI UPDATES =====
         function updateUI() {
-            populateColumnSelector();
-            populateColumnSelect();
-            displayRows();
-            updateCensus();
-            updateColumnButtonText();
+            try {
+                populateColumnSelector();
+                populateColumnSelect();
+                displayRows();
+                updateCensus();
+                updateColumnButtonText();
+            } catch (error) {
+                console.error('Error updating UI:', error);
+                // Try to recover
+                checkDataIntegrity();
+                // Try again with simpler approach
+                updateCensus();
+                displayRows();
+            }
         }
 
         function updateCensus() {
@@ -892,17 +1036,35 @@
             const file = event.target.files[0];
             if (!file) return;
 
+            console.log('File selected:', file.name, 'Type:', file.type);
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 const content = e.target.result;
                 
-                if (file.name.endsWith('.json')) {
+                // Determine file type by extension first, then by content
+                const fileName = file.name.toLowerCase();
+                
+                if (fileName.endsWith('.json')) {
                     handleJSONImport(content);
-                } else if (file.name.endsWith('.csv')) {
+                } else if (fileName.endsWith('.csv')) {
                     handleCSVImport(content);
                 } else {
-                    alert('Please upload a .json or .csv file');
+                    // Try to detect format by content
+                    const trimmed = content.trim();
+                    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                        console.log('Detected JSON format by content');
+                        handleJSONImport(content);
+                    } else {
+                        console.log('Assuming CSV format');
+                        handleCSVImport(content);
+                    }
                 }
+            };
+            
+            reader.onerror = function(error) {
+                console.error('File read error:', error);
+                alert('Error reading file');
             };
             
             reader.readAsText(file);
@@ -912,22 +1074,68 @@
         function handleJSONImport(content) {
             try {
                 const jsonData = JSON.parse(content);
+                console.log('Importing JSON data:', jsonData);
                 
                 if (!validateLoadedData(jsonData)) {
                     alert('Invalid JSON format. Please use a file exported from this application.');
                     return;
                 }
                 
-                appState.data = jsonData.data || [];
-                appState.headers = jsonData.headers || [...DEFAULT_HEADERS];
-                appState.selectedColumns = jsonData.selectedColumns || [0, 1, 2];
-                appState.timestamps = jsonData.timestamps || {};
+                // Clear current state before importing
+                appState.data = [];
+                appState.headers = [...DEFAULT_HEADERS];
+                appState.selectedColumns = [0, 1, 2];
+                appState.timestamps = {};
                 
-                // Ensure data integrity
-                appState.data = appState.data.map(row => {
-                    if (!Array.isArray(row)) return new Array(appState.headers.length).fill('');
-                    while (row.length < appState.headers.length) row.push('');
-                    return row;
+                // Import headers
+                if (Array.isArray(jsonData.headers) && jsonData.headers.length > 0) {
+                    appState.headers = jsonData.headers.map(h => String(h).trim());
+                }
+                
+                // Import data - be very careful with structure
+                if (Array.isArray(jsonData.data)) {
+                    appState.data = jsonData.data.map((row, idx) => {
+                        if (!Array.isArray(row)) {
+                            console.warn(`Row ${idx} is not an array, skipping`);
+                            return null;
+                        }
+                        
+                        // Create properly sized row
+                        const newRow = new Array(appState.headers.length).fill('');
+                        
+                        // Copy data from imported row
+                        row.forEach((cell, cellIdx) => {
+                            if (cellIdx < appState.headers.length) {
+                                newRow[cellIdx] = String(cell || '').trim();
+                            }
+                        });
+                        
+                        return newRow;
+                    }).filter(row => row !== null); // Remove invalid rows
+                }
+                
+                // Import timestamps
+                if (jsonData.timestamps && typeof jsonData.timestamps === 'object') {
+                    appState.timestamps = jsonData.timestamps;
+                }
+                
+                // Import selected columns
+                if (Array.isArray(jsonData.selectedColumns)) {
+                    appState.selectedColumns = jsonData.selectedColumns
+                        .filter(col => typeof col === 'number' && col >= 0 && col < appState.headers.length)
+                        .slice(0, 5); // Max 5 columns
+                }
+                
+                // Ensure we have at least some columns selected
+                if (appState.selectedColumns.length === 0) {
+                    const maxCols = Math.min(3, appState.headers.length);
+                    appState.selectedColumns = Array.from({length: maxCols}, (_, i) => i);
+                }
+                
+                console.log('Import complete:', {
+                    headers: appState.headers,
+                    rows: appState.data.length,
+                    selectedCols: appState.selectedColumns
                 });
                 
                 saveData();
@@ -943,30 +1151,69 @@
         function handleCSVImport(content) {
             Papa.parse(content, {
                 complete: function(results) {
-                    if (!results.data || results.data.length < 2) {
-                        alert('CSV file appears to be empty or invalid');
+                    console.log('CSV parse results:', results);
+                    
+                    if (!results.data || results.data.length < 1) {
+                        alert('CSV file appears to be empty');
                         return;
                     }
                     
                     // First row as headers
-                    appState.headers = results.data[0].map(h => String(h).trim());
+                    const csvHeaders = results.data[0];
+                    if (!Array.isArray(csvHeaders) || csvHeaders.length === 0) {
+                        alert('Invalid CSV format - no headers found');
+                        return;
+                    }
                     
-                    // Rest as data
-                    appState.data = results.data.slice(1)
-                        .filter(row => row.some(cell => cell && String(cell).trim()))
-                        .map(row => row.map(cell => String(cell || '').trim()));
+                    appState.headers = csvHeaders.map(h => String(h || '').trim()).filter(h => h !== '');
+                    
+                    if (appState.headers.length === 0) {
+                        alert('No valid headers found in CSV');
+                        return;
+                    }
+                    
+                    // Process data rows
+                    appState.data = [];
+                    for (let i = 1; i < results.data.length; i++) {
+                        const csvRow = results.data[i];
+                        
+                        // Skip empty rows
+                        if (!Array.isArray(csvRow) || csvRow.every(cell => !cell || String(cell).trim() === '')) {
+                            continue;
+                        }
+                        
+                        // Create properly formatted row
+                        const newRow = new Array(appState.headers.length).fill('');
+                        csvRow.forEach((cell, idx) => {
+                            if (idx < appState.headers.length) {
+                                newRow[idx] = String(cell || '').trim();
+                            }
+                        });
+                        
+                        appState.data.push(newRow);
+                    }
                     
                     // Reset other state
                     appState.selectedColumns = [0, 1, 2].filter(i => i < appState.headers.length);
+                    if (appState.selectedColumns.length === 0) {
+                        appState.selectedColumns = [0];
+                    }
                     appState.timestamps = {};
+                    
+                    console.log('CSV import complete:', {
+                        headers: appState.headers,
+                        rows: appState.data.length
+                    });
                     
                     saveData();
                     updateUI();
-                    alert(`Successfully imported ${appState.data.length} entries`);
+                    alert(`Successfully imported ${appState.data.length} entries from CSV`);
                 },
                 error: function(error) {
+                    console.error('CSV parse error:', error);
                     alert('Error parsing CSV: ' + error.message);
-                }
+                },
+                skipEmptyLines: false // We'll handle empty lines ourselves
             });
         }
 
@@ -985,39 +1232,88 @@
         }
 
         function exportJSON() {
+            // Clean data before export
+            const cleanData = appState.data.map(row => {
+                if (!Array.isArray(row)) {
+                    console.error('Non-array row found during export');
+                    return new Array(appState.headers.length).fill('');
+                }
+                // Ensure row has exact length of headers
+                const cleanRow = new Array(appState.headers.length).fill('');
+                row.forEach((cell, idx) => {
+                    if (idx < appState.headers.length) {
+                        cleanRow[idx] = String(cell || '');
+                    }
+                });
+                return cleanRow;
+            });
+            
             const exportData = {
                 version: "2.0",
                 exportDate: new Date().toISOString(),
                 headers: appState.headers,
-                data: appState.data,
+                data: cleanData,
                 selectedColumns: appState.selectedColumns,
                 timestamps: appState.timestamps
             };
             
+            console.log('Exporting data:', {
+                headers: exportData.headers.length,
+                rows: exportData.data.length,
+                firstRow: exportData.data[0]
+            });
+            
             const dataStr = JSON.stringify(exportData, null, 2);
             const blob = new Blob([dataStr], { type: 'application/json' });
             downloadFile(blob, generateFileName('json'));
+            
+            alert(`Exported ${cleanData.length} patients to JSON file`);
         }
 
         function exportCSV() {
+            // Prepare data for CSV export
             const csvData = [
                 appState.headers,
-                ...appState.data
+                ...appState.data.map(row => {
+                    // Ensure each row has correct number of columns
+                    const csvRow = new Array(appState.headers.length).fill('');
+                    if (Array.isArray(row)) {
+                        row.forEach((cell, idx) => {
+                            if (idx < appState.headers.length) {
+                                csvRow[idx] = String(cell || '');
+                            }
+                        });
+                    }
+                    return csvRow;
+                })
             ];
             
             const csvContent = Papa.unparse(csvData);
             const blob = new Blob([csvContent], { type: 'text/csv' });
             downloadFile(blob, generateFileName('csv'));
+            
+            alert(`Exported ${appState.data.length} patients to CSV file`);
         }
 
         function downloadFile(blob, filename) {
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(link.href);
+            try {
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.href = url;
+                link.download = filename;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Clean up the URL after a short delay
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                }, 100);
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('Error downloading file. Please try again.');
+            }
         }
 
         function generateFileName(extension) {
@@ -1103,10 +1399,29 @@
             const rowContent = document.createElement('div');
             rowContent.className = 'row-content';
             
+            // Ensure row is an array
+            if (!Array.isArray(row)) {
+                console.error('Invalid row at index', index);
+                const errorSpan = document.createElement('span');
+                errorSpan.textContent = 'Invalid row data';
+                errorSpan.style.color = 'var(--danger)';
+                rowContent.appendChild(errorSpan);
+                listItem.appendChild(rowContent);
+                return listItem;
+            }
+            
+            // Display selected columns
             appState.selectedColumns.forEach((colIndex, idx) => {
                 const span = document.createElement('span');
                 span.className = COLORS[idx % COLORS.length];
-                span.textContent = row[colIndex] || '';
+                
+                // Safe access to column data
+                if (colIndex >= 0 && colIndex < row.length) {
+                    span.textContent = String(row[colIndex] || '');
+                } else {
+                    span.textContent = '';
+                }
+                
                 rowContent.appendChild(span);
             });
             
@@ -1114,7 +1429,7 @@
             
             // Add timestamp badge
             const mrnIndex = appState.headers.indexOf('MRN');
-            if (mrnIndex !== -1 && row[mrnIndex] && appState.timestamps[row[mrnIndex]]) {
+            if (mrnIndex !== -1 && mrnIndex < row.length && row[mrnIndex] && appState.timestamps[row[mrnIndex]]) {
                 const badge = createTimestampBadge(appState.timestamps[row[mrnIndex]]);
                 if (badge) listItem.appendChild(badge);
             }
@@ -1136,29 +1451,75 @@
             return badge;
         }
 
-        // ===== SORTING =====
-        function sortRows() {
-            const columnIndex = document.getElementById('columnSelect').value;
-            if (!columnIndex) return;
-            
-            appState.data.sort((a, b) => {
-                const valA = (a[columnIndex] || '').toString().toLowerCase();
-                const valB = (b[columnIndex] || '').toString().toLowerCase();
-                
-                // Try numeric sort first
-                const numA = parseFloat(valA);
-                const numB = parseFloat(valB);
-                
-                if (!isNaN(numA) && !isNaN(numB)) {
-                    return numA - numB;
-                }
-                
-                return valA.localeCompare(valB);
-            });
-            
-            saveData();
-            displayRows();
+
+
+
+
+
+
+
+
+// ===== SORTING =====
+function sortRows() {
+    const columnIndex = parseInt(document.getElementById('columnSelect').value);
+    if (isNaN(columnIndex) || columnIndex < 0 || columnIndex >= appState.headers.length) {
+        return;
+    }
+    
+    // ADD THIS: Check if this is the Priority column
+    const columnName = appState.headers[columnIndex];
+    const isPriorityColumn = columnName && columnName.toUpperCase() === 'PRIORITY';
+    
+    appState.data.sort((a, b) => {
+        // Ensure both rows are arrays and have the column
+        const valA = (Array.isArray(a) && columnIndex < a.length) 
+            ? (a[columnIndex] || '').toString().toLowerCase() 
+            : '';
+        const valB = (Array.isArray(b) && columnIndex < b.length) 
+            ? (b[columnIndex] || '').toString().toLowerCase() 
+            : '';
+        
+        // CHANGE THIS SECTION: Special handling for Priority column
+        if (isPriorityColumn) {
+            // For Priority: numbered items (1,2,3) should be at TOP
+            if (valA === '' && valB === '') return 0;
+            if (valA === '') return 1;  // blank goes to bottom
+            if (valB === '') return -1; // non-blank goes to top
+        } else {
+            // For other columns: keep existing behavior
+            if (valA === '' && valB === '') return 0;
+            if (valA === '') return 1;
+            if (valB === '') return -1;
         }
+        
+        // Try numeric sort first
+        const numA = parseFloat(valA);
+        const numB = parseFloat(valB);
+        
+        if (!isNaN(numA) && !isNaN(numB)) {
+            return numA - numB;
+        }
+        
+        return valA.localeCompare(valB);
+    });
+    
+    saveData();
+    displayRows();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         // ===== SEARCH FUNCTIONS =====
         function toggleSearch() {
@@ -1228,6 +1589,11 @@
 
         // ===== DETAIL VIEW =====
         function showDetails(index) {
+            if (index < 0 || index >= appState.data.length) {
+                alert('Invalid patient index');
+                return;
+            }
+            
             appState.currentRowIndex = index;
             const detailsView = document.getElementById('detailsView');
             const form = document.getElementById('editForm');
@@ -1236,8 +1602,22 @@
             form.innerHTML = '';
             
             const row = appState.data[index];
+            
+            // Ensure row is valid
+            if (!Array.isArray(row)) {
+                alert('Invalid patient data');
+                return;
+            }
+            
+            // Ensure row has correct length
+            while (row.length < appState.headers.length) {
+                row.push('');
+            }
+            
             const nameIndex = appState.headers.indexOf('NAME');
-            const title = (nameIndex !== -1 && row[nameIndex]) ? row[nameIndex] : 'Patient Details';
+            const title = (nameIndex !== -1 && nameIndex < row.length && row[nameIndex]) 
+                ? row[nameIndex] 
+                : 'Patient Details';
             stickyTextContainer.textContent = title;
             
             appState.headers.forEach((header, colIndex) => {
@@ -1245,7 +1625,7 @@
                 label.textContent = header;
                 
                 const textarea = document.createElement('textarea');
-                textarea.value = row[colIndex] || '';
+                textarea.value = (colIndex < row.length) ? String(row[colIndex] || '') : '';
                 textarea.setAttribute('data-col-index', colIndex);
                 
                 form.appendChild(label);
@@ -1254,10 +1634,16 @@
                 textarea.addEventListener('input', function() {
                     autoResizeTextarea(this);
                     const idx = parseInt(this.getAttribute('data-col-index'));
+                    
+                    // Ensure the row exists and has correct length
+                    if (!appState.data[appState.currentRowIndex]) {
+                        appState.data[appState.currentRowIndex] = new Array(appState.headers.length).fill('');
+                    }
+                    
                     appState.data[appState.currentRowIndex][idx] = this.value;
                     
                     if (appState.headers[idx] === 'NAME') {
-                        stickyTextContainer.textContent = this.value;
+                        stickyTextContainer.textContent = this.value || 'Patient Details';
                     }
                     
                     saveData();
@@ -1434,14 +1820,26 @@
         function addEntry(event) {
             event.preventDefault();
             const fields = document.querySelectorAll('#newEntryFields input');
-            const newEntry = Array.from(fields).map(field => field.value.trim());
             
+            // Create new entry array with exact header length
+            const newEntry = new Array(appState.headers.length).fill('');
+            
+            // Fill in values from form fields
+            fields.forEach((field, index) => {
+                if (index < appState.headers.length) {
+                    newEntry[index] = field.value.trim();
+                }
+            });
+            
+            // Check if at least one field has data
             if (newEntry.every(val => val === '')) {
                 alert('Please fill out at least one field');
                 return;
             }
             
+            console.log('Adding new entry:', newEntry);
             appState.data.push(newEntry);
+            
             saveData();
             updateUI();
             closeAddEntryModal();
@@ -1470,21 +1868,53 @@
             const newPatients = parseCernerList(pasteText, service);
             
             if (newPatients.length === 0) {
-                alert('No valid patient entries found');
+                alert('No valid patient entries found. Please check the format:\n\nExpected: Room [TAB] Name [TAB] MRN');
                 return;
             }
             
+            // Add new patients
             appState.data.push(...newPatients);
+            
+            // Run integrity check after import
+            checkDataIntegrity();
+            
             saveData();
             updateUI();
             closeAddEntryModal();
             
-            alert(`Import complete: ${newPatients.length} patients added`);
+            // Clear the textarea
+            document.getElementById('cernerTextArea').value = '';
+            
+            alert(`Import complete: ${newPatients.length} patients added from ${service} service`);
         }
 
         function parseCernerList(text, service) {
             const lines = text.split('\n').filter(line => line.trim());
             const newPatients = [];
+            
+            // Ensure headers include required fields
+            const requiredHeaders = ['NAME', 'ROOM', 'MRN', 'SERVICE'];
+            let headersModified = false;
+            
+            requiredHeaders.forEach(reqHeader => {
+                if (!appState.headers.includes(reqHeader)) {
+                    appState.headers.push(reqHeader);
+                    headersModified = true;
+                }
+            });
+            
+            if (headersModified) {
+                // Fix existing data to match new headers
+                appState.data = appState.data.map(row => {
+                    const newRow = new Array(appState.headers.length).fill('');
+                    row.forEach((cell, idx) => {
+                        if (idx < newRow.length) {
+                            newRow[idx] = cell;
+                        }
+                    });
+                    return newRow;
+                });
+            }
             
             lines.forEach(line => {
                 if (!line.trim() || 
@@ -1522,6 +1952,7 @@
                 }
                 
                 if (room && name && mrn && /^\d+$/.test(mrn)) {
+                    // Create properly sized patient array
                     const newPatient = new Array(appState.headers.length).fill('');
                     
                     const indices = {
