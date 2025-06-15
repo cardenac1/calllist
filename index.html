@@ -1151,25 +1151,58 @@
         }
 
         // File input handler
-        document.getElementById('fileInput').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const content = e.target.result;
-                    console.log('File loaded, attempting to parse...');
+   
+
+document.getElementById('fileInput').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const content = e.target.result;
+            console.log('File loaded, type:', file.name.endsWith('.json') ? 'JSON' : 'CSV');
+            
+            // Check file extension first
+            if (file.name.endsWith('.json')) {
+                // Handle JSON file
+                try {
+                    const jsonData = JSON.parse(content);
+                    console.log('Parsed JSON:', jsonData);
                     
-                    // Try to parse as JSON first
-                    try {
-                        const jsonData = JSON.parse(content);
-                        console.log('Parsed JSON:', jsonData);
+                    // Check if it's the correct JSON format
+                    if (jsonData.version && jsonData.data && jsonData.headers) {
+                        parsedData = jsonData.data || [];
+                        headers = jsonData.headers || [...DEFAULT_HEADERS];
+                        timestamps = jsonData.timestamps || {};
+                        selectedColumns = jsonData.selectedColumns || [0, 1, 2];
                         
-                        // Check if it's the correct JSON format
-                        if (jsonData.version && jsonData.data && jsonData.headers) {
-                            parsedData = jsonData.data || [];
-                            headers = jsonData.headers || [...DEFAULT_HEADERS];
-                            timestamps = jsonData.timestamps || {};
-                            selectedColumns = jsonData.selectedColumns || [0, 1, 2];
+                        fixDataStructure();
+                        validateSelectedColumns();
+                        populateColumnSelector();
+                        populateColumnSelect();
+                        displayRows();
+                        saveToLocalStorage();
+                        updateCensus();
+                        updateDebugInfo();
+                        
+                        alert(`Successfully imported ${parsedData.length} entries from JSON file`);
+                    } else {
+                        alert('Invalid JSON format. Please use a file exported from this application.');
+                    }
+                } catch (jsonError) {
+                    console.error('JSON parse error:', jsonError);
+                    alert('Error parsing JSON file: ' + jsonError.message);
+                }
+            } else {
+                // Handle CSV file
+                Papa.parse(content, {
+                    complete: function(results) {
+                        console.log('CSV parse results:', results);
+                        if (results.data && results.data.length > 0) {
+                            // For CSV, first row is headers
+                            headers = results.data[0].map(h => h.trim()) || [...DEFAULT_HEADERS];
+                            parsedData = results.data.slice(1).filter(row => row.some(cell => cell && cell.trim())); // Remove empty rows
+                            timestamps = {}; // Reset timestamps for CSV import
+                            selectedColumns = [0, 1, 2]; // Reset to default
                             
                             fixDataStructure();
                             validateSelectedColumns();
@@ -1180,53 +1213,42 @@
                             updateCensus();
                             updateDebugInfo();
                             
-                            alert(`Successfully imported ${parsedData.length} entries from JSON file`);
-                            return;
+                            alert(`Successfully imported ${parsedData.length} entries from CSV file`);
                         } else {
-                            throw new Error('Invalid JSON format');
+                            alert('Error: No data found in CSV file');
                         }
-                    } catch (jsonError) {
-                        // JSON parsing failed, try CSV
-                        console.log('JSON parse failed, trying CSV format:', jsonError);
-                        
-                        Papa.parse(content, {
-                            complete: function(results) {
-                                console.log('CSV parse results:', results);
-                                if (results.data && results.data.length > 0) {
-                                    headers = results.data[0] || [...DEFAULT_HEADERS];
-                                    parsedData = results.data.slice(1).filter(row => row.some(cell => cell)); // Remove empty rows
-                                    timestamps = {}; // Reset timestamps for CSV import
-                                    selectedColumns = [0, 1, 2]; // Reset to default
-                                    
-                                    fixDataStructure();
-                                    validateSelectedColumns();
-                                    populateColumnSelector();
-                                    populateColumnSelect();
-                                    displayRows();
-                                    saveToLocalStorage();
-                                    updateCensus();
-                                    updateDebugInfo();
-                                    
-                                    alert(`Successfully imported ${parsedData.length} entries from CSV file`);
-                                } else {
-                                    alert('Error: No data found in file');
-                                }
-                            },
-                            error: function(error) {
-                                console.error('Error parsing file:', error);
-                                alert('Error reading file. Please check the format.');
-                            },
-                            header: false,
-                            skipEmptyLines: true
-                        });
-                    }
-                };
-                reader.readAsText(file);
-                
-                // Reset file input
-                event.target.value = '';
+                    },
+                    error: function(error) {
+                        console.error('Error parsing CSV:', error);
+                        alert('Error reading CSV file. Please check the format.');
+                    },
+                    header: false,
+                    skipEmptyLines: true
+                });
             }
-        });
+        };
+        reader.readAsText(file);
+        
+        // Reset file input
+        event.target.value = '';
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
         function populateColumnSelector() {
             const columnSelector = document.getElementById('columnSelector');
@@ -1583,39 +1605,57 @@ function toggleColumnSelection(colIndex, button) {
             displayRows();
         }
 
+
+
+
+
+
         function exportJSON() {
-            if (parsedData.length === 0) {
-                alert('No data to export');
-                return;
-            }
+    if (parsedData.length === 0) {
+        alert('No data to export');
+        return;
+    }
 
-            const now = new Date();
-            const formattedDate = String(now.getMonth() + 1).padStart(2, '0') + "." +
-                String(now.getDate()).padStart(2, '0') + "." +
-                String(now.getFullYear()).slice(-2);
+    const now = new Date();
+    const formattedDate = String(now.getMonth() + 1).padStart(2, '0') + "." +
+        String(now.getDate()).padStart(2, '0') + "." +
+        String(now.getFullYear()).slice(-2);
 
-            const filename = `list_${formattedDate}.json`;
-            
-            const jsonData = {
-                version: "1.0",
-                exportDate: now.toISOString(),
-                headers: headers,
-                data: parsedData,
-                timestamps: timestamps,
-                selectedColumns: selectedColumns
-            };
-            
-            const dataStr = JSON.stringify(jsonData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const link = document.createElement('a');
-            link.setAttribute('href', URL.createObjectURL(blob));
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            alert(`Exported ${parsedData.length} patients to ${filename}`);
+    const filename = `list_${formattedDate}.json`;
+    
+    // Ensure all data is properly structured before export
+    const cleanData = parsedData.map(row => {
+        if (!Array.isArray(row)) {
+            console.error('Non-array row found during export:', row);
+            return new Array(headers.length).fill('');
         }
+        return row;
+    });
+    
+    const jsonData = {
+        version: "1.0",
+        exportDate: now.toISOString(),
+        headers: headers,
+        data: cleanData,
+        timestamps: timestamps || {},
+        selectedColumns: selectedColumns || [0, 1, 2]
+    };
+    
+    const dataStr = JSON.stringify(jsonData, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.setAttribute('href', URL.createObjectURL(blob));
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    alert(`Exported ${parsedData.length} patients to ${filename}`);
+}
+
+
+
+        
 
         function deleteCurrentEntry() {
             if (currentRowIndex !== -1) {
