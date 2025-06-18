@@ -680,6 +680,8 @@
                 </label>
             </div>
             <button id="columnToggleBtn" onclick="toggleColumnDropdown()">Columns (3)</button>
+                <button id="resortBtn" onclick="reSort()" style="display: none;">↻ Re-sort</button>  <!-- ADD THIS -->
+
             <select id="columnSelect" onchange="sortRows()">
                 <option value="">Sort by...</option>
             </select>
@@ -783,6 +785,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 
     <script>
+
+        // ===== STATE MANAGEMENT =====
+let currentSortColumn = -1;  // ADD THIS LINE
+
+let appState = {
+    data: [],
+    headers: [...DEFAULT_HEADERS],
+    selectedColumns: [0, 1, 2],
+    timestamps: {},
+    currentRowIndex: -1,
+    filteredIndexes: []
+};
         // ===== CONFIGURATION =====
         const DEFAULT_HEADERS = ['NAME', 'ROOM', 'MRN', 'SERVICE', 'Task', 'TT', 'Priority'];
         const STORAGE_KEY = 'medListData';
@@ -1463,8 +1477,14 @@
 function sortRows() {
     const columnIndex = parseInt(document.getElementById('columnSelect').value);
     if (isNaN(columnIndex) || columnIndex < 0 || columnIndex >= appState.headers.length) {
+                // Hide re-sort button if no valid sort
+        document.getElementById('resortBtn').style.display = 'none';
+        currentSortColumn = -1;
         return;
     }
+        // Save the current sort column and show re-sort button
+    currentSortColumn = columnIndex;
+    document.getElementById('resortBtn').style.display = 'inline-block';
     
     // ADD THIS: Check if this is the Priority column
     const columnName = appState.headers[columnIndex];
@@ -1513,7 +1533,22 @@ function sortRows() {
 
 
 
-
+function reSort() {
+    if (currentSortColumn >= 0) {
+        // Set the dropdown to the current sort column
+        document.getElementById('columnSelect').value = currentSortColumn;
+        // Call the existing sort function
+        sortRows();
+        
+        // Optional: Show a brief message
+        const btn = document.getElementById('resortBtn');
+        const originalText = btn.textContent;
+        btn.textContent = '✓ Sorted!';
+        setTimeout(() => {
+            btn.textContent = originalText;
+        }, 1000);
+    }
+}
 
 
 
