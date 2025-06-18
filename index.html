@@ -786,17 +786,7 @@
 
     <script>
 
-        // ===== STATE MANAGEMENT =====
-let currentSortColumn = -1;  // ADD THIS LINE
 
-let appState = {
-    data: [],
-    headers: [...DEFAULT_HEADERS],
-    selectedColumns: [0, 1, 2],
-    timestamps: {},
-    currentRowIndex: -1,
-    filteredIndexes: []
-};
         // ===== CONFIGURATION =====
         const DEFAULT_HEADERS = ['NAME', 'ROOM', 'MRN', 'SERVICE', 'Task', 'TT', 'Priority'];
         const STORAGE_KEY = 'medListData';
