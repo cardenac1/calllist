@@ -1913,8 +1913,9 @@ function reSort() {
         }
 
         function parseCernerList(text, service) {
-            const lines = text.split('\n').filter(line => line.trim());
+            const lines = text.split('\n');
             const newPatients = [];
+            const skippedLines = [];
             
             // Ensure headers include required fields
             const requiredHeaders = ['NAME', 'ROOM', 'MRN', 'SERVICE'];
@@ -1940,42 +1941,80 @@ function reSort() {
                 });
             }
             
-            lines.forEach(line => {
-                if (!line.trim() || 
-                    line.toLowerCase().includes('patient list') || 
-                    (line.toLowerCase().includes('room') && line.toLowerCase().includes('name'))) {
+            lines.forEach((line, lineIndex) => {
+                // Skip completely empty lines
+                if (!line.trim()) {
                     return;
                 }
                 
+                // Skip header rows (but be less aggressive)
+                if (lineIndex === 0 && line.toLowerCase().includes('room') && line.toLowerCase().includes('name') && line.toLowerCase().includes('mrn')) {
+                    return;
+                }
+                
+                // Try different splitting methods
                 let columns = line.split('\t');
                 
-                if (columns.length < 3) {
+                // If tab split didn't work well, try multiple spaces
+                if (columns.length < 3 || columns.every(col => !col.trim())) {
                     columns = line.split(/\s{2,}/);
+                }
+                
+                // If still not enough columns, try single space but be smart about it
+                if (columns.length < 3) {
+                    // Look for MRN pattern (usually a long number at the end)
+                    const mrnMatch = line.match(/\b(\d{6,})\b\s*$/);
+                    if (mrnMatch) {
+                        const beforeMrn = line.substring(0, line.lastIndexOf(mrnMatch[1])).trim();
+                        // Try to split room and name
+                        const roomMatch = beforeMrn.match(/^(\S+)\s+(.+)$/);
+                        if (roomMatch) {
+                            columns = [roomMatch[1], roomMatch[2], mrnMatch[1]];
+                        }
+                    }
                 }
                 
                 let room = '', name = '', mrn = '';
                 
+                // Parse based on number of columns
                 if (columns.length >= 5) {
+                    // Format: [blank] [blank] Room Name MRN
                     room = columns[2].trim();
                     name = columns[3].trim();
                     mrn = columns[4].trim();
-                } else if (columns.length === 3) {
-                    room = columns[0].trim();
-                    name = columns[1].trim();
-                    mrn = columns[2].trim();
                 } else if (columns.length === 4) {
+                    // Could be: [blank] Room Name MRN
                     if (!columns[0].trim()) {
                         room = columns[1].trim();
                         name = columns[2].trim();
                         mrn = columns[3].trim();
                     } else {
+                        // Or: Room FirstName LastName MRN
                         room = columns[0].trim();
                         name = `${columns[1]} ${columns[2]}`.trim();
                         mrn = columns[3].trim();
                     }
+                } else if (columns.length === 3) {
+                    // Standard: Room Name MRN
+                    room = columns[0].trim();
+                    name = columns[1].trim();
+                    mrn = columns[2].trim();
+                } else if (columns.length === 2) {
+                    // Maybe missing room? Try Name MRN
+                    name = columns[0].trim();
+                    mrn = columns[1].trim();
+                    room = 'TBD'; // Default room
                 }
                 
-                if (room && name && mrn && /^\d+$/.test(mrn)) {
+                // Clean up the values
+                room = room.replace(/[^\w\s-]/g, '').trim();
+                name = name.replace(/\s+/g, ' ').trim();
+                mrn = mrn.replace(/\D/g, '').trim(); // Remove non-digits from MRN
+                
+                // Validate - be more lenient
+                const isValid = name && mrn && mrn.length >= 6; // MRN should be at least 6 digits
+                
+                if (isValid) {
                     // Create properly sized patient array
                     const newPatient = new Array(appState.headers.length).fill('');
                     
@@ -1987,16 +2026,52 @@ function reSort() {
                     };
                     
                     if (indices.name !== -1) newPatient[indices.name] = name;
-                    if (indices.room !== -1) newPatient[indices.room] = room;
+                    if (indices.room !== -1) newPatient[indices.room] = room || 'TBD';
                     if (indices.mrn !== -1) newPatient[indices.mrn] = mrn;
                     if (indices.service !== -1) newPatient[indices.service] = service;
                     
                     newPatients.push(newPatient);
+                } else {
+                    // Track why this line was skipped
+                    let reason = 'Unknown';
+                    if (!name) reason = 'No name found';
+                    else if (!mrn) reason = 'No MRN found';
+                    else if (mrn.length < 6) reason = 'MRN too short';
+                    
+                    skippedLines.push({
+                        line: line.substring(0, 50) + (line.length > 50 ? '...' : ''),
+                        reason: reason,
+                        parsed: { room, name, mrn }
+                    });
                 }
             });
             
+            // Show debug info if lines were skipped
+            if (skippedLines.length > 0) {
+                console.log('Skipped lines:', skippedLines);
+                const showDetails = confirm(`Imported ${newPatients.length} patients. ${skippedLines.length} lines were skipped. Show details?`);
+                if (showDetails) {
+                    let details = 'Skipped lines:\n\n';
+                    skippedLines.forEach((skip, i) => {
+                        details += `Line ${i + 1}: "${skip.line}"\n`;
+                        details += `  Reason: ${skip.reason}\n`;
+                        details += `  Parsed as: Room="${skip.parsed.room}", Name="${skip.parsed.name}", MRN="${skip.parsed.mrn}"\n\n`;
+                    });
+                    alert(details);
+                }
+            }
+            
             return newPatients;
         }
+
+
+
+
+
+
+
+
+        
 
         // ===== UTILITY FUNCTIONS =====
         function clearAllData() {
