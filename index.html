@@ -2021,27 +2021,6 @@ function reSort() {
     return newPatients;
 }
 
-        
-            
-            // Show debug info if lines were skipped
-            if (skippedLines.length > 0) {
-                console.log('Skipped lines:', skippedLines);
-                const showDetails = confirm(`Imported ${newPatients.length} patients. ${skippedLines.length} lines were skipped. Show details?`);
-                if (showDetails) {
-                    let details = 'Skipped lines:\n\n';
-                    skippedLines.forEach((skip, i) => {
-                        details += `Line ${i + 1}: "${skip.line}"\n`;
-                        details += `  Reason: ${skip.reason}\n`;
-                        details += `  Parsed as: Room="${skip.parsed.room}", Name="${skip.parsed.name}", MRN="${skip.parsed.mrn}"\n\n`;
-                    });
-                    alert(details);
-                }
-            }
-            
-            return newPatients;
-        }
-
-
 
 
 
