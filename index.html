@@ -1913,138 +1913,115 @@ function reSort() {
         }
 
         function parseCernerList(text, service) {
-            const lines = text.split('\n');
-            const newPatients = [];
-            const skippedLines = [];
-            
-            // Ensure headers include required fields
-            const requiredHeaders = ['NAME', 'ROOM', 'MRN', 'SERVICE'];
-            let headersModified = false;
-            
-            requiredHeaders.forEach(reqHeader => {
-                if (!appState.headers.includes(reqHeader)) {
-                    appState.headers.push(reqHeader);
-                    headersModified = true;
+    const lines = text.split('\n').filter(l => l.trim());
+    const newPatients = [];
+    
+    // Ensure headers include required fields
+    const requiredHeaders = ['NAME', 'ROOM', 'MRN', 'SERVICE'];
+    let headersModified = false;
+    
+    requiredHeaders.forEach(reqHeader => {
+        if (!appState.headers.includes(reqHeader)) {
+            appState.headers.push(reqHeader);
+            headersModified = true;
+        }
+    });
+    
+    if (headersModified) {
+        // Fix existing data to match new headers
+        appState.data = appState.data.map(row => {
+            const newRow = new Array(appState.headers.length).fill('');
+            row.forEach((cell, idx) => {
+                if (idx < newRow.length) {
+                    newRow[idx] = cell;
                 }
             });
+            return newRow;
+        });
+    }
+    
+    lines.forEach(line => {
+        const lc = line.toLowerCase();
+        
+        // Skip header rows
+        if (!line.trim() || 
+            lc.includes('patient list') || 
+            (lc.includes('room') && lc.includes('name'))) {
+            return;
+        }
+        
+        // Split on tabs or big spaces
+        let cols = line.split('\t').filter(c => c.trim());
+        if (cols.length < 3) {
+            cols = line.split(/\s{2,}/).filter(c => c.trim());
+        }
+        if (cols.length < 2) return;
+        
+        // Extract the basics using pattern matching
+        let room = '', name = '', mrn = '', att = '';
+        
+        cols.forEach(c => {
+            const t = c.trim();
             
-            if (headersModified) {
-                // Fix existing data to match new headers
-                appState.data = appState.data.map(row => {
-                    const newRow = new Array(appState.headers.length).fill('');
-                    row.forEach((cell, idx) => {
-                        if (idx < newRow.length) {
-                            newRow[idx] = cell;
-                        }
-                    });
-                    return newRow;
-                });
+            // MRN: 5-10 digit number
+            if (/^\d{5,10}$/.test(t) && !mrn) {
+                mrn = t;
+            }
+            // Room: starts with known prefixes
+            else if (/^(WMC|ICU|CCU|[A-Z]{2,4})\s+/.test(t) && !room) {
+                room = t;
+            }
+            // Name: contains comma (Last, First format)
+            else if (t.includes(',') && !name) {
+                name = t;
+            }
+            // Attending: contains MD/MBBS/DO/Dr
+            else if (/(MD|MBBS|DO|Dr\b)/i.test(t) && !att) {
+                att = t;
+            }
+            // If we have room and MRN but no name, this might be the name
+            else if (room && mrn && !name) {
+                name = t;
+            }
+        });
+        
+        // If no name found, try to guess from remaining columns
+        if (!name) {
+            const guess = cols.find(c => c.trim() && !/^\d+$/.test(c) && c.trim() !== room);
+            name = guess ? guess.trim() : 'Unknown';
+        }
+        
+        // Only add if we have at least name and MRN
+        if (name && mrn) {
+            // Create properly sized patient array
+            const newPatient = new Array(appState.headers.length).fill('');
+            
+            const indices = {
+                name: appState.headers.indexOf('NAME'),
+                room: appState.headers.indexOf('ROOM'),
+                mrn: appState.headers.indexOf('MRN'),
+                service: appState.headers.indexOf('SERVICE')
+            };
+            
+            if (indices.name !== -1) newPatient[indices.name] = name;
+            if (indices.room !== -1) newPatient[indices.room] = room || 'TBD';
+            if (indices.mrn !== -1) newPatient[indices.mrn] = mrn;
+            if (indices.service !== -1) newPatient[indices.service] = service;
+            
+            // If you want to add attending info, add ATT to headers first
+            const attIndex = appState.headers.indexOf('ATT');
+            if (att && attIndex !== -1) {
+                newPatient[attIndex] = att;
             }
             
-            lines.forEach((line, lineIndex) => {
-                // Skip completely empty lines
-                if (!line.trim()) {
-                    return;
-                }
-                
-                // Skip header rows (but be less aggressive)
-                if (lineIndex === 0 && line.toLowerCase().includes('room') && line.toLowerCase().includes('name') && line.toLowerCase().includes('mrn')) {
-                    return;
-                }
-                
-                // Try different splitting methods
-                let columns = line.split('\t');
-                
-                // If tab split didn't work well, try multiple spaces
-                if (columns.length < 3 || columns.every(col => !col.trim())) {
-                    columns = line.split(/\s{2,}/);
-                }
-                
-                // If still not enough columns, try single space but be smart about it
-                if (columns.length < 3) {
-                    // Look for MRN pattern (usually a long number at the end)
-                    const mrnMatch = line.match(/\b(\d{6,})\b\s*$/);
-                    if (mrnMatch) {
-                        const beforeMrn = line.substring(0, line.lastIndexOf(mrnMatch[1])).trim();
-                        // Try to split room and name
-                        const roomMatch = beforeMrn.match(/^(\S+)\s+(.+)$/);
-                        if (roomMatch) {
-                            columns = [roomMatch[1], roomMatch[2], mrnMatch[1]];
-                        }
-                    }
-                }
-                
-                let room = '', name = '', mrn = '';
-                
-                // Parse based on number of columns
-                if (columns.length >= 5) {
-                    // Format: [blank] [blank] Room Name MRN
-                    room = columns[2].trim();
-                    name = columns[3].trim();
-                    mrn = columns[4].trim();
-                } else if (columns.length === 4) {
-                    // Could be: [blank] Room Name MRN
-                    if (!columns[0].trim()) {
-                        room = columns[1].trim();
-                        name = columns[2].trim();
-                        mrn = columns[3].trim();
-                    } else {
-                        // Or: Room FirstName LastName MRN
-                        room = columns[0].trim();
-                        name = `${columns[1]} ${columns[2]}`.trim();
-                        mrn = columns[3].trim();
-                    }
-                } else if (columns.length === 3) {
-                    // Standard: Room Name MRN
-                    room = columns[0].trim();
-                    name = columns[1].trim();
-                    mrn = columns[2].trim();
-                } else if (columns.length === 2) {
-                    // Maybe missing room? Try Name MRN
-                    name = columns[0].trim();
-                    mrn = columns[1].trim();
-                    room = 'TBD'; // Default room
-                }
-                
-                // Clean up the values
-                room = room.replace(/[^\w\s-]/g, '').trim();
-                name = name.replace(/\s+/g, ' ').trim();
-                mrn = mrn.replace(/\D/g, '').trim(); // Remove non-digits from MRN
-                
-                // Validate - be more lenient
-                const isValid = name && mrn && mrn.length >= 6; // MRN should be at least 6 digits
-                
-                if (isValid) {
-                    // Create properly sized patient array
-                    const newPatient = new Array(appState.headers.length).fill('');
-                    
-                    const indices = {
-                        name: appState.headers.indexOf('NAME'),
-                        room: appState.headers.indexOf('ROOM'),
-                        mrn: appState.headers.indexOf('MRN'),
-                        service: appState.headers.indexOf('SERVICE')
-                    };
-                    
-                    if (indices.name !== -1) newPatient[indices.name] = name;
-                    if (indices.room !== -1) newPatient[indices.room] = room || 'TBD';
-                    if (indices.mrn !== -1) newPatient[indices.mrn] = mrn;
-                    if (indices.service !== -1) newPatient[indices.service] = service;
-                    
-                    newPatients.push(newPatient);
-                } else {
-                    // Track why this line was skipped
-                    let reason = 'Unknown';
-                    if (!name) reason = 'No name found';
-                    else if (!mrn) reason = 'No MRN found';
-                    else if (mrn.length < 6) reason = 'MRN too short';
-                    
-                    skippedLines.push({
-                        line: line.substring(0, 50) + (line.length > 50 ? '...' : ''),
-                        reason: reason,
-                        parsed: { room, name, mrn }
-                    });
-                }
-            });
+            newPatients.push(newPatient);
+        }
+    });
+    
+    return newPatients;
+}
+
+        
             
             // Show debug info if lines were skipped
             if (skippedLines.length > 0) {
